@@ -9,7 +9,7 @@ import (
 )
 
 func Unmarshal(data []byte, c *Config) error {
-	if len(data) < 10 {
+	if len(data) < 7 {
 		return errors.New("binary data too short to contain a valid layout header")
 	}
 
@@ -61,11 +61,11 @@ func Unmarshal(data []byte, c *Config) error {
 			return fmt.Errorf("failed to read map size: %w", err)
 		}
 
-		for i := uint16(0); i < numHosts; i++ {
+		for j := uint8(0); j < numRecords; j++ {
 			// Key
 			var keyLen uint8
 			if err := binary.Read(reader, binary.BigEndian, &keyLen); err != nil {
-				return fmt.Errorf("failed to read key length at record %d: %w", i, err)
+				return fmt.Errorf("failed to read key length at record %d: %w", j, err)
 			}
 
 			// Value
