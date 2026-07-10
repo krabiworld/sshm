@@ -44,7 +44,7 @@ func main() {
 	}
 
 	// Footer
-	footer := tview.NewTextView().SetText("^F Search | ^A Add | ^M Modify | ^D Delete | ^X Settings")
+	footer := tview.NewTextView().SetText("^F Search | ^A Add | ^M Modify | ^D Delete | ^I Copy ID | ^X Settings")
 	searchField := tview.NewInputField().SetLabel("Search: ")
 
 	// Layouts
@@ -126,6 +126,11 @@ func main() {
 
 		if event.Key() == tcell.KeyCtrlD && ctx.App.GetFocus() == ctx.Table {
 			actions.DeleteHost(ctx)
+			return nil
+		}
+
+		if event.Key() == tcell.KeyCtrlI && ctx.App.GetFocus() == ctx.Table {
+			actions.CopyID(ctx)
 			return nil
 		}
 
