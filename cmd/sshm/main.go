@@ -41,6 +41,14 @@ func main() {
 
 	_, err = os.Stat(*configPath)
 	if os.IsNotExist(err) {
+		ctx.Config = &config.Config{
+			Defaults: config.ConfigDefaults{
+				Port:         "22",
+				AuthMethod:   config.AuthMethodIdentityFile,
+				IdentityFile: "~/.ssh/id_rsa",
+			},
+			Hosts: make(map[string]config.ConfigHost),
+		}
 		if err := ctx.Config.Write(ctx.ConfigPath); err != nil {
 			ctx.App.Stop()
 			fmt.Printf("Error while initializing config: %v\n", err)
