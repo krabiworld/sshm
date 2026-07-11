@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"syscall"
 
 	"github.com/krabiworld/sshm/internal/app"
+	"github.com/krabiworld/sshm/internal/config"
+	"github.com/zalando/go-keyring"
 )
 
 func Connect(ctx app.Context) {
@@ -16,40 +17,68 @@ func Connect(ctx app.Context) {
 		return
 	}
 
-	binary, err := exec.LookPath("ssh")
+	host := ctx.Config.Hosts[cell.Text]
+
+	var (
+		binary string
+		args   = []string{}
+		err    error
+	)
+
+	authMethod := host.AuthMethod
+	if authMethod == "" {
+		authMethod = ctx.Config.Defaults.AuthMethod
+	}
+
+	switch authMethod {
+	case config.AuthMethodIdentityFile:
+		binary, err = exec.LookPath("ssh")
+	case config.AuthMethodPassword:
+		binary, err = exec.LookPath("sshpass")
+		args = append(args, "-d", "3", "ssh")
+	}
 	if err != nil {
+		ctx.App.Stop()
 		panic(err)
 	}
 
-	c := ctx.Config.Hosts[cell.Text]
+	args = append(args, fmt.Sprintf("%s@%s", host.Username, host.Address))
 
-	var args []string
-	if ctx.Config.Settings.CloseAfterConnection {
-		args = []string{"ssh", fmt.Sprintf("%s@%s", c.Username, c.Address)}
-	} else {
-		args = []string{fmt.Sprintf("%s@%s", c.Username, c.Address)}
-	}
-
-	if port := c.Port; port != "" {
+	if port := host.Port; port != "" {
 		args = append(args, "-p", port)
 	}
-	if identityFile := c.IdentityFile; identityFile != "" {
+	if identityFile := host.IdentityFile; identityFile != "" {
 		args = append(args, "-i", identityFile)
 	}
 
-	if ctx.Config.Settings.CloseAfterConnection {
-		ctx.App.Stop()
-		env := os.Environ()
-		if err := syscall.Exec(binary, args, env); err != nil {
+	ctx.App.Suspend(func() {
+		r, w, err := os.Pipe()
+		if err != nil {
 			panic(err)
 		}
-	} else {
-		ctx.App.Suspend(func() {
-			cmd := exec.Command(binary, args...)
-			cmd.Stdin = os.Stdin
-			cmd.Stdout = os.Stdout
-			cmd.Stderr = os.Stderr
-			cmd.Run()
-		})
-	}
+
+		cmd := exec.Command(binary, args...)
+		cmd.Stdin = os.Stdin
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		cmd.ExtraFiles = []*os.File{r}
+		cmd.Start()
+
+		if authMethod == config.AuthMethodPassword {
+			password, err := keyring.Get("sshm", fmt.Sprintf("%s-%s", host.Address, host.Username))
+			if err != nil {
+				r.Close()
+				w.Close()
+				panic(err)
+			}
+			r.Close()
+			_, err = w.Write([]byte(password + "\n"))
+			w.Close()
+		} else {
+			r.Close()
+			w.Close()
+		}
+
+		cmd.Wait()
+	})
 }

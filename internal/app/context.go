@@ -20,7 +20,7 @@ type Context struct {
 func (ctx *Context) UpdateTable(filter string) {
 	ctx.Table.Clear()
 
-	headers := []string{"Hostname", "Address", "Username", "Port", "Identity file"}
+	headers := []string{"Hostname", "Address", "Username", "Port", "Identity"}
 	for col, text := range headers {
 		cell := tview.NewTableCell(text).
 			SetTextColor(tcell.ColorYellow).
@@ -41,9 +41,24 @@ func (ctx *Context) UpdateTable(filter string) {
 		cfgHost := ctx.Config.Hosts[host]
 
 		address := cfgHost.Address
-		port := cfgHost.Port
 		user := cfgHost.Username
-		identityFile := cfgHost.IdentityFile
+		port := cfgHost.Port
+		if port == "" {
+			port = ctx.Config.Defaults.Port + " (d)"
+		}
+		authMethod := cfgHost.AuthMethod
+		if authMethod == "" {
+			authMethod = ctx.Config.Defaults.AuthMethod
+		}
+		identity := cfgHost.IdentityFile
+		switch authMethod {
+		case config.AuthMethodIdentityFile:
+			if identity == "" {
+				identity = ctx.Config.Defaults.IdentityFile + " (d)"
+			}
+		case config.AuthMethodPassword:
+			identity = "Password (d)"
+		}
 
 		if filter != "" {
 			if !strings.HasPrefix(host, filter) && !strings.HasPrefix(address, filter) {
@@ -55,7 +70,7 @@ func (ctx *Context) UpdateTable(filter string) {
 		ctx.Table.SetCell(rowIdx, 1, tview.NewTableCell(address))
 		ctx.Table.SetCell(rowIdx, 2, tview.NewTableCell(user))
 		ctx.Table.SetCell(rowIdx, 3, tview.NewTableCell(port))
-		ctx.Table.SetCell(rowIdx, 4, tview.NewTableCell(identityFile))
+		ctx.Table.SetCell(rowIdx, 4, tview.NewTableCell(identity))
 
 		rowIdx++
 	}

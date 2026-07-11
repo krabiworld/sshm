@@ -5,12 +5,14 @@ import (
 	"os"
 )
 
-type ConfigSettings struct {
-	CloseAfterConnection bool `json:"close_after_connection"`
-}
+const (
+	AuthMethodIdentityFile = "identity_file"
+	AuthMethodPassword     = "password"
+)
 
 type ConfigDefaults struct {
 	Port         string `json:"port"`
+	AuthMethod   string `json:"auth_method"`
 	IdentityFile string `json:"identity_file"`
 }
 
@@ -21,17 +23,8 @@ type ConfigHost struct {
 }
 
 type Config struct {
-	Settings ConfigSettings        `json:"settings"`
 	Defaults ConfigDefaults        `json:"defaults"`
 	Hosts    map[string]ConfigHost `json:"hosts"`
-}
-
-func (c *Config) Get(hostname string) ConfigHost {
-	return c.Hosts[hostname]
-}
-
-func (c *Config) Delete(hostname string) {
-	delete(c.Hosts, hostname)
 }
 
 func (c *Config) Read(filePath string) (err error) {
@@ -41,15 +34,6 @@ func (c *Config) Read(filePath string) (err error) {
 	}
 	if err := json.Unmarshal(configFile, c); err != nil {
 		return err
-	}
-	for name, host := range c.Hosts {
-		if host.Port == "" {
-			host.Port = c.Defaults.Port
-		}
-		if host.IdentityFile == "" {
-			host.IdentityFile = c.Defaults.IdentityFile
-		}
-		c.Hosts[name] = host
 	}
 	return
 }

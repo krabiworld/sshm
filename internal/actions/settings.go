@@ -5,24 +5,25 @@ import (
 	"strings"
 
 	"github.com/krabiworld/sshm/internal/app"
+	"github.com/krabiworld/sshm/internal/utils"
 	"github.com/rivo/tview"
 )
 
 func Settings(ctx app.Context) {
 	var (
-		closeAfterConnection = ctx.Config.Settings.CloseAfterConnection
-		port                 = ctx.Config.Defaults.Port
-		identityFile         = ctx.Config.Defaults.IdentityFile
+		port         = ctx.Config.Defaults.Port
+		authMethod = utils.ConvertAuthMethodToInt(ctx.Config.Defaults.AuthMethod)
+		identityFile = ctx.Config.Defaults.IdentityFile
 	)
 	form := tview.NewForm()
-	form.AddCheckbox("Close sshm after connecting?", closeAfterConnection, func(checked bool) { closeAfterConnection = checked })
 	form.AddInputField("Default port", port, 0, nil, func(text string) { port = text })
+	form.AddDropDown("Default auth method", []string{"Identity file", "Password"}, authMethod, func(_ string, optionIndex int) { authMethod = optionIndex })
 	form.AddInputField("Default identity file", identityFile, 0, nil, func(text string) { identityFile = text })
 	form.AddButton("Save", func() {
 		port = strings.TrimSpace(port)
 		identityFile = strings.TrimSpace(identityFile)
 
-		if port == "" || identityFile == "" {
+		if port == "" || identityFile == "" || (authMethod != 0 && authMethod != 1) {
 			modal := tview.NewModal().
 				SetText("Please fill in all fields!").
 				AddButtons([]string{"ОК"}).
@@ -34,16 +35,14 @@ func Settings(ctx app.Context) {
 			return
 		}
 
-		ctx.Config.Settings.CloseAfterConnection = closeAfterConnection
 		ctx.Config.Defaults.Port = port
+		ctx.Config.Defaults.AuthMethod = utils.ConvertIntToAuthMethod(authMethod)
 		ctx.Config.Defaults.IdentityFile = identityFile
 		if err := ctx.Config.Write(ctx.ConfigPath); err != nil {
 			ctx.App.Stop()
 			fmt.Printf("Error while initializing config: %v\n", err)
 			return
 		}
-
-		ctx.UpdateTable("")
 
 		ctx.Pages.RemovePage("settings")
 		ctx.App.SetFocus(ctx.Table)
