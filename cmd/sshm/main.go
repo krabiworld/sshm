@@ -15,6 +15,7 @@ import (
 
 func main() {
 	tview.Styles.PrimitiveBackgroundColor = tcell.ColorDefault
+	tview.Styles.ContrastBackgroundColor = tcell.ColorDarkCyan
 
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
@@ -34,7 +35,7 @@ func main() {
 
 	selectedStyle := tcell.StyleDefault.
 	    Foreground(tcell.ColorWhite).
-	    Background(tcell.ColorBlue).
+	    Background(tcell.ColorDarkCyan).
 	    Attributes(tcell.AttrBold)
 
 	ctx.Table.SetSelectedStyle(selectedStyle)

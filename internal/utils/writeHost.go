@@ -101,7 +101,7 @@ func WriteHost(ctx app.Context, oldHostname string) {
 	form.SetBorder(true).SetTitle(title)
 
 	ctx.Pages.AddPage("write_host", tview.NewGrid().
-		SetRows(0, 17, 0).
+		SetRows(0, 19, 0).
 		SetColumns(0, 65, 0).
 		AddItem(form, 1, 1, 1, 1, 0, 0, true), true, true)
 	ctx.App.SetFocus(form)
