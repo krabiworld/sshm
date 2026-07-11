@@ -7,6 +7,7 @@ import (
 
 	"github.com/krabiworld/sshm/internal/app"
 	"github.com/krabiworld/sshm/internal/config"
+	"github.com/krabiworld/sshm/internal/utils"
 	"github.com/zalando/go-keyring"
 )
 
@@ -17,18 +18,14 @@ func Connect(ctx app.Context) {
 		return
 	}
 
-	host := ctx.Config.Hosts[cell.Text]
-
 	var (
-		binary string
-		args   = []string{}
-		err    error
+		server     = ctx.GetServer(cell.Text)
+		binary     string
+		args       = []string{}
+		username   = utils.CheckDefault(server.Username, ctx.GetDefaults().Username)
+		authMethod = utils.CheckDefault(server.AuthMethod, ctx.GetDefaults().AuthMethod)
+		err        error
 	)
-
-	authMethod := host.AuthMethod
-	if authMethod == "" {
-		authMethod = ctx.Config.Defaults.AuthMethod
-	}
 
 	switch authMethod {
 	case config.AuthMethodIdentityFile:
@@ -37,25 +34,20 @@ func Connect(ctx app.Context) {
 		binary, err = exec.LookPath("sshpass")
 		args = append(args, "-d", "3", "ssh")
 	}
-	if err != nil {
-		ctx.App.Stop()
-		panic(err)
-	}
+	utils.CheckError(&ctx, err)
 
-	args = append(args, fmt.Sprintf("%s@%s", host.Username, host.Address))
+	args = append(args, fmt.Sprintf("%s@%s", username, server.Address))
 
-	if port := host.Port; port != "" {
+	if port := server.Port; port != "" {
 		args = append(args, "-p", port)
 	}
-	if identityFile := host.IdentityFile; identityFile != "" {
+	if identityFile := server.IdentityFile; identityFile != "" {
 		args = append(args, "-i", identityFile)
 	}
 
 	ctx.App.Suspend(func() {
 		r, w, err := os.Pipe()
-		if err != nil {
-			panic(err)
-		}
+		utils.CheckError(&ctx, err)
 
 		cmd := exec.Command(binary, args...)
 		cmd.Stdin = os.Stdin
@@ -65,11 +57,11 @@ func Connect(ctx app.Context) {
 		cmd.Start()
 
 		if authMethod == config.AuthMethodPassword {
-			password, err := keyring.Get("sshm", fmt.Sprintf("%s-%s", host.Address, host.Username))
+			password, err := keyring.Get("sshm", fmt.Sprintf("%s-%s", server.Address, server.Username))
 			if err != nil {
 				r.Close()
 				w.Close()
-				panic(err)
+				utils.CheckError(&ctx, err)
 			}
 			r.Close()
 			_, err = w.Write([]byte(password + "\n"))

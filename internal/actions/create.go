@@ -5,6 +5,6 @@ import (
 	"github.com/krabiworld/sshm/internal/utils"
 )
 
-func CreateHost(ctx app.Context) {
-	utils.WriteHost(ctx, "")
+func Create(ctx app.Context) {
+	utils.WriteServer(ctx, "")
 }

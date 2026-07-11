@@ -2,64 +2,38 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"os"
 	"path/filepath"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/krabiworld/sshm/internal/actions"
 	"github.com/krabiworld/sshm/internal/app"
-	"github.com/krabiworld/sshm/internal/config"
+	"github.com/krabiworld/sshm/internal/utils"
 	"github.com/rivo/tview"
 )
 
 func main() {
-	tview.Styles.PrimitiveBackgroundColor = tcell.ColorDefault
-	tview.Styles.ContrastBackgroundColor = tcell.ColorDarkCyan
-
 	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		panic(err)
-	}
+	utils.CheckError(nil, err)
 
 	configPath := flag.String("config", filepath.Join(homeDir, ".ssh", "config.sshm.json"), "")
 	flag.Parse()
 
-	ctx := app.Context{
-		Config:     &config.Config{},
-		ConfigPath: *configPath,
-		App:        tview.NewApplication(),
-		Pages:      tview.NewPages(),
-		Table:      tview.NewTable().SetSelectable(true, false),
-	}
-
-	selectedStyle := tcell.StyleDefault.
-	    Foreground(tcell.ColorWhite).
-	    Background(tcell.ColorDarkCyan).
-	    Attributes(tcell.AttrBold)
-
-	ctx.Table.SetSelectedStyle(selectedStyle)
+	ctx := app.NewContext(
+		*configPath,
+		tview.NewApplication(),
+		tview.NewPages(),
+		tview.NewTable().SetSelectable(true, false),
+	)
 
 	_, err = os.Stat(*configPath)
 	if os.IsNotExist(err) {
-		ctx.Config = &config.Config{
-			Defaults: config.ConfigDefaults{
-				Port:         "22",
-				AuthMethod:   config.AuthMethodIdentityFile,
-				IdentityFile: "~/.ssh/id_rsa",
-			},
-			Hosts: make(map[string]config.ConfigHost),
-		}
-		if err := ctx.Config.Write(ctx.ConfigPath); err != nil {
-			ctx.App.Stop()
-			fmt.Printf("Error while initializing config: %v\n", err)
-			return
-		}
+		utils.CheckError(&ctx, ctx.WriteConfig())
 	}
 
-	if err := ctx.Config.Read(ctx.ConfigPath); err != nil {
-		panic(err)
-	}
+	utils.CheckError(&ctx, ctx.ReadConfig())
+
+	ctx.ApplyTheme()
 
 	// Footer
 	footer := tview.NewTextView().SetText("^F Search | ^A Add | ^M Modify | ^D Delete | ^I Copy ID | ^X Settings")
@@ -133,17 +107,17 @@ func main() {
 		}
 
 		if event.Key() == tcell.KeyCtrlA && ctx.App.GetFocus() == ctx.Table {
-			actions.CreateHost(ctx)
+			actions.Create(ctx)
 			return nil
 		}
 
 		if event.Key() == tcell.KeyCtrlM && ctx.App.GetFocus() == ctx.Table {
-			actions.ModifyHost(ctx)
+			actions.Modify(ctx)
 			return nil
 		}
 
 		if event.Key() == tcell.KeyCtrlD && ctx.App.GetFocus() == ctx.Table {
-			actions.DeleteHost(ctx)
+			actions.Delete(ctx)
 			return nil
 		}
 
@@ -155,7 +129,5 @@ func main() {
 		return event
 	})
 
-	if err := ctx.App.SetRoot(ctx.Pages, true).Run(); err != nil {
-		panic(err)
-	}
+	utils.CheckError(&ctx, ctx.App.SetRoot(ctx.Pages, true).Run())
 }

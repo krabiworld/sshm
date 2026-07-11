@@ -6,6 +6,7 @@ import (
 	"os/exec"
 
 	"github.com/krabiworld/sshm/internal/app"
+	"github.com/krabiworld/sshm/internal/utils"
 )
 
 func CopyID(ctx app.Context) {
@@ -16,11 +17,9 @@ func CopyID(ctx app.Context) {
 	}
 
 	binary, err := exec.LookPath("ssh-copy-id")
-	if err != nil {
-		panic(err)
-	}
+	utils.CheckError(&ctx, err)
 
-	c := ctx.Config.Hosts[cell.Text]
+	c := ctx.GetServer(cell.Text)
 
 	var args []string
 

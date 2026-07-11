@@ -1,7 +1,6 @@
 package actions
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/krabiworld/sshm/internal/app"
@@ -11,19 +10,21 @@ import (
 
 func Settings(ctx app.Context) {
 	var (
-		port         = ctx.Config.Defaults.Port
-		authMethod = utils.ConvertAuthMethodToInt(ctx.Config.Defaults.AuthMethod)
-		identityFile = ctx.Config.Defaults.IdentityFile
+		theme = ctx.GetApplication().Theme
+		port         = ctx.GetDefaults().Port
+		authMethod   = ctx.GetDefaults().AuthMethod
+		identityFile = ctx.GetDefaults().IdentityFile
 	)
 	form := tview.NewForm()
+	form.AddDropDown("Theme", []string{"Dark", "Light", "Transparent"}, utils.GetIndex(utils.ThemeOrder, theme), func(_ string, optionIndex int) { theme = utils.GetByIndex(utils.ThemeOrder, optionIndex) })
 	form.AddInputField("Default port", port, 0, nil, func(text string) { port = text })
-	form.AddDropDown("Default auth method", []string{"Identity file", "Password"}, authMethod, func(_ string, optionIndex int) { authMethod = optionIndex })
+	form.AddDropDown("Default auth method", []string{"Identity file", "Password"}, utils.GetIndex(utils.AuthMethodOrder, authMethod), func(_ string, optionIndex int) { authMethod = utils.GetByIndex(utils.AuthMethodOrder, optionIndex) })
 	form.AddInputField("Default identity file", identityFile, 0, nil, func(text string) { identityFile = text })
 	form.AddButton("Save", func() {
 		port = strings.TrimSpace(port)
 		identityFile = strings.TrimSpace(identityFile)
 
-		if port == "" || identityFile == "" || (authMethod != 0 && authMethod != 1) {
+		if port == "" || identityFile == "" {
 			modal := tview.NewModal().
 				SetText("Please fill in all fields!").
 				AddButtons([]string{"ОК"}).
@@ -35,14 +36,15 @@ func Settings(ctx app.Context) {
 			return
 		}
 
-		ctx.Config.Defaults.Port = port
-		ctx.Config.Defaults.AuthMethod = utils.ConvertIntToAuthMethod(authMethod)
-		ctx.Config.Defaults.IdentityFile = identityFile
-		if err := ctx.Config.Write(ctx.ConfigPath); err != nil {
-			ctx.App.Stop()
-			fmt.Printf("Error while initializing config: %v\n", err)
-			return
-		}
+		app := ctx.GetApplication()
+		app.Theme = theme
+		utils.CheckError(&ctx, ctx.SaveApplication(app))
+
+		def := ctx.GetDefaults()
+		def.Port = port
+		def.AuthMethod = authMethod
+		def.IdentityFile = identityFile
+		utils.CheckError(&ctx, ctx.SaveDefaults(def))
 
 		ctx.Pages.RemovePage("settings")
 		ctx.App.SetFocus(ctx.Table)
@@ -50,7 +52,7 @@ func Settings(ctx app.Context) {
 	form.SetBorder(true).SetTitle("Settings")
 
 	ctx.Pages.AddPage("settings", tview.NewGrid().
-		SetRows(0, 11, 0).
+		SetRows(0, 13, 0).
 		SetColumns(0, 60, 0).
 		AddItem(form, 1, 1, 1, 1, 0, 0, true), true, true)
 	ctx.App.SetFocus(form)

@@ -1,15 +1,14 @@
 package actions
 
 import (
-	"fmt"
-
 	"github.com/krabiworld/sshm/internal/app"
+	"github.com/krabiworld/sshm/internal/utils"
 	"github.com/rivo/tview"
 )
 
-func DeleteHost(ctx app.Context) {
+func Delete(ctx app.Context) {
 	modal := tview.NewModal().
-		SetText("Are you sure you want to delete the host?").
+		SetText("Are you sure you want to delete the server?").
 		AddButtons([]string{"No", "Yes"}).
 		SetDoneFunc(func(buttonIndex int, buttonLabel string) {
 			if buttonLabel != "Yes" {
@@ -25,11 +24,7 @@ func DeleteHost(ctx app.Context) {
 			if cell == nil {
 				return
 			}
-			delete(ctx.Config.Hosts, cell.Text)
-			if err := ctx.Config.Write(ctx.ConfigPath); err != nil {
-				ctx.App.Stop()
-				fmt.Printf("Error while initializing config: %v\n", err)
-			}
+			utils.CheckError(&ctx, ctx.DeleteServer(cell.Text))
 
 			ctx.Table.RemoveRow(row)
 			if row >= ctx.Table.GetRowCount() && ctx.Table.GetRowCount() > 1 {
