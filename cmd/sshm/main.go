@@ -14,6 +14,8 @@ import (
 )
 
 func main() {
+	tview.Styles.PrimitiveBackgroundColor = tcell.ColorDefault
+
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		panic(err)
@@ -29,6 +31,13 @@ func main() {
 		Pages:      tview.NewPages(),
 		Table:      tview.NewTable().SetSelectable(true, false),
 	}
+
+	selectedStyle := tcell.StyleDefault.
+	    Foreground(tcell.ColorWhite).
+	    Background(tcell.ColorBlue).
+	    Attributes(tcell.AttrBold)
+
+	ctx.Table.SetSelectedStyle(selectedStyle)
 
 	_, err = os.Stat(*configPath)
 	if os.IsNotExist(err) {
