@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"charm.land/bubbles/v2/table"
+	"github.com/krabiworld/sshm/internal/config"
 )
 
 func (m *model) updateTable() {
@@ -29,8 +30,11 @@ func (m *model) updateTable() {
 		}
 
 		var identity string
-		if server.HasPassword {
+		if server.AuthType == config.AuthPassword {
 			identity = "Password"
+			if m.config.Defaults.AuthType == config.AuthPassword {
+				identity += " (d)"
+			}
 		} else {
 			identity = m.appendDefaultTag(server.IdentityFile, m.config.Defaults.IdentityFile)
 		}

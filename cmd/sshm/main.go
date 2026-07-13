@@ -3,25 +3,22 @@ package main
 import (
 	"flag"
 	"os"
-	"path/filepath"
 
 	tea "charm.land/bubbletea/v2"
 	"github.com/krabiworld/sshm/internal/config"
 	"github.com/krabiworld/sshm/internal/ui"
+	"github.com/krabiworld/sshm/internal/utils"
 )
 
 func main() {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		panic(err)
-	}
-
-	configPath := flag.String("config", filepath.Join(homeDir, ".ssh", "config.sshm.json"), "")
+	configPath := flag.String("config", "~/.ssh/config.sshm.json", "")
 	flag.Parse()
+
+	*configPath = utils.ExpandPath(*configPath)
 
 	var cfg config.Config
 
-	_, err = os.Stat(*configPath)
+	_, err := os.Stat(*configPath)
 	if os.IsNotExist(err) {
 		cfg.Write(*configPath)
 	}

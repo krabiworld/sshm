@@ -21,6 +21,7 @@ func (m model) updateServer(msg tea.Msg) (tea.Model, tea.Cmd) {
 		formAddress := m.form.GetString(forms.ServerAddress)
 		formUsername := m.form.GetString(forms.ServerUsername)
 		formPort := m.form.GetString(forms.ServerPort)
+		formAuthType := m.form.Get(forms.ServerAuthType).(config.AuthType)
 		formIdentityFile := m.form.GetString(forms.ServerIdentityFile)
 		formPassword := m.form.GetString(forms.ServerPassword)
 
@@ -28,11 +29,12 @@ func (m model) updateServer(msg tea.Msg) (tea.Model, tea.Cmd) {
 		hasPassword := password != ""
 
 		server := config.Server{
-			Address:      formAddress,
-			Username:     formUsername,
-			Port:         formPort,
-			IdentityFile: formIdentityFile,
-			HasPassword:  hasPassword,
+			Address:       formAddress,
+			Username:      formUsername,
+			Port:          formPort,
+			AuthType:      formAuthType,
+			IdentityFile:  formIdentityFile,
+			HasPassphrase: hasPassword,
 		}
 
 		if m.activeModal == modalModify {
@@ -72,6 +74,7 @@ func (m model) updateSettings(msg tea.Msg) (tea.Model, tea.Cmd) {
 	if m.form.State == huh.StateCompleted {
 		formUsername := m.form.GetString(forms.SettingsUsername)
 		formPort := m.form.GetString(forms.SettingsPort)
+		formAuthType := m.form.Get(forms.ServerAuthType).(config.AuthType)
 		formIdentityFile := m.form.GetString(forms.SettingsIdentityFile)
 
 		if m.activeModal == modalModify {
@@ -84,6 +87,7 @@ func (m model) updateSettings(msg tea.Msg) (tea.Model, tea.Cmd) {
 		defaults := m.config.Defaults
 		defaults.Username = formUsername
 		defaults.Port = formPort
+		defaults.AuthType = formAuthType
 		defaults.IdentityFile = formIdentityFile
 
 		if err := m.config.SaveDefaults(defaults, m.configPath); err != nil {

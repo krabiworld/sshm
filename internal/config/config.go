@@ -6,18 +6,27 @@ import (
 	"os/user"
 )
 
+type AuthType string
+
+const (
+	AuthKey      AuthType = "key"
+	AuthPassword AuthType = "password"
+)
+
 type Defaults struct {
-	Username     string `json:"username"`
-	Port         string `json:"port"`
-	IdentityFile string `json:"identity_file"`
+	Username     string   `json:"username"`
+	Port         string   `json:"port"`
+	AuthType     AuthType `json:"auth_type"`
+	IdentityFile string   `json:"identity_file"`
 }
 
 type Server struct {
-	Address      string `json:"address"`
-	Username     string `json:"username,omitempty"`
-	Port         string `json:"port,omitempty"`
-	IdentityFile string `json:"identity_file,omitempty"`
-	HasPassword  bool   `json:"has_password,omitempty"`
+	Address       string   `json:"address"`
+	Username      string   `json:"username,omitempty"`
+	Port          string   `json:"port,omitempty"`
+	AuthType      AuthType `json:"auth_type,omitempty"`
+	IdentityFile  string   `json:"identity_file,omitempty"`
+	HasPassphrase bool     `json:"has_passphrase,omitempty"`
 }
 
 type Config struct {
@@ -78,6 +87,7 @@ func (c *Config) Read(filePath string) (err error) {
 	usr, _ := user.Current()
 	applyDefaults(&c.Defaults.Username, usr.Username)
 	applyDefaults(&c.Defaults.Port, "22")
+	applyDefaults(&c.Defaults.AuthType, AuthKey)
 	applyDefaults(&c.Defaults.IdentityFile, "~/.ssh/id_rsa")
 
 	return
@@ -102,14 +112,14 @@ func (c *Config) defaults(s *Server, f func(*string, string)) {
 	f(&s.IdentityFile, c.Defaults.IdentityFile)
 }
 
-func applyDefaults(val *string, def string) {
-	if *val == "" {
+func applyDefaults[T comparable](val *T, def T) {
+	if *val == *new(T) {
 		*val = def
 	}
 }
 
-func stripDefaults(val *string, def string) {
+func stripDefaults[T comparable](val *T, def T) {
 	if *val == def {
-		*val = ""
+		*val = *new(T)
 	}
 }

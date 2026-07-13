@@ -32,7 +32,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch m.activeModal {
 	case modalSearch:
 		return m.updateSearch(msg)
-	case modalCreate, modalModify, modalSettings:
+	case modalCreate, modalModify:
 		return m.updateServer(msg)
 	case modalDelete:
 		form, cmd := m.form.Update(msg)
@@ -50,6 +50,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.activeModal = modalNone
 		}
 		return m, cmd
+	case modalSettings:
+		return m.updateSettings(msg)
 	}
 
 	switch msg := msg.(type) {
@@ -58,7 +60,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "ctrl+c", "q":
 			cmds = append(cmds, tea.Quit)
 		case "enter":
-			return m, m.connectSSH(m.getCurrentServer())
+			return m, m.connectSsh(m.getCurrentServer())
 		case "ctrl+f":
 			m.activeModal = modalSearch
 			m.searchInput.Focus()

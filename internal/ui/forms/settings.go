@@ -15,6 +15,7 @@ func NewSettings(cfg config.Config) *huh.Form {
 	var (
 		username     = cfg.Defaults.Username
 		port         = cfg.Defaults.Port
+		authType     = cfg.Defaults.AuthType
 		identityFile = cfg.Defaults.IdentityFile
 	)
 	return huh.NewForm(
@@ -31,6 +32,12 @@ func NewSettings(cfg config.Config) *huh.Form {
 				Value(&port).
 				Inline(true).
 				Validate(validatePort),
+			huh.NewSelect[config.AuthType]().
+				Key(ServerAuthType).
+				Title("Auth type").
+				Options(huh.NewOption("key", config.AuthKey), huh.NewOption("password", config.AuthPassword)).
+				Value(&authType).
+				Inline(true),
 			huh.NewInput().
 				Key(ServerIdentityFile).
 				Title("Identity file").

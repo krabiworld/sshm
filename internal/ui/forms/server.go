@@ -10,6 +10,7 @@ const (
 	ServerAddress      = "address"
 	ServerUsername     = "username"
 	ServerPort         = "port"
+	ServerAuthType     = "auth_type"
 	ServerIdentityFile = "identity_file"
 	ServerPassword     = "password"
 )
@@ -20,6 +21,7 @@ func NewServer(cfg config.Config, currentName string) *huh.Form {
 		address  string
 		username string
 		port     string
+		authType = cfg.Defaults.AuthType
 		identity string
 		password string
 	)
@@ -29,8 +31,9 @@ func NewServer(cfg config.Config, currentName string) *huh.Form {
 		address = currentServer.Address
 		username = currentServer.Username
 		port = currentServer.Port
+		authType = currentServer.AuthType
 		identity = currentServer.IdentityFile
-		if currentServer.HasPassword {
+		if currentServer.HasPassphrase || currentServer.AuthType == config.AuthPassword {
 			password = "********"
 		}
 	}
@@ -62,6 +65,12 @@ func NewServer(cfg config.Config, currentName string) *huh.Form {
 				Value(&port).
 				Inline(true).
 				Validate(validatePort),
+			huh.NewSelect[config.AuthType]().
+				Key(ServerAuthType).
+				Title("Auth type").
+				Options(huh.NewOption("key", config.AuthKey), huh.NewOption("password", config.AuthPassword)).
+				Value(&authType).
+				Inline(true),
 			huh.NewInput().
 				Key(ServerIdentityFile).
 				Title("Identity file").
