@@ -31,32 +31,32 @@ func (m *model) updateTable() {
 		}
 
 		var username string
-		if server.Username == utils.GetCurrentUsername() && m.config.Defaults.Username == "" {
+		if server.Username == utils.GetCurrentUsername() && m.config.GetDefaults().Username == "" {
 			username = server.Username + " (c)"
 		} else {
-			username = m.appendDefaultTag(server.Username, m.config.Defaults.Username)
+			username = m.appendDefaultTag(server.Username, m.config.GetDefaults().Username)
 		}
 
 		authType := server.AuthType
 		if authType == "" {
-			authType = m.config.Defaults.AuthType
+			authType = m.config.GetDefaults().AuthType
 		}
 
 		var identity string
 		if authType == config.AuthPassword {
 			identity = "Password"
-			if m.config.Defaults.AuthType == config.AuthPassword {
+			if m.config.GetDefaults().AuthType == config.AuthPassword {
 				identity += " (d)"
 			}
 		} else {
-			identity = m.appendDefaultTag(server.IdentityFile, m.config.Defaults.IdentityFile)
+			identity = m.appendDefaultTag(server.IdentityFile, m.config.GetDefaults().IdentityFile)
 		}
 
 		rows = append(rows, table.Row{
 			name,
 			server.Address,
 			username,
-			m.appendDefaultTag(server.Port, m.config.Defaults.Port),
+			m.appendDefaultTag(server.Port, m.config.GetDefaults().Port),
 			identity,
 		})
 	}

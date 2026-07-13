@@ -4,6 +4,7 @@ import (
 	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/huh/v2"
+	"github.com/krabiworld/sshm/internal/security"
 	"github.com/krabiworld/sshm/internal/ui/forms"
 )
 
@@ -40,8 +41,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.form = f
 		}
 		if m.form.State == huh.StateCompleted && m.form.GetBool(forms.DeleteConfirmed) {
-			err := m.config.Delete(m.getCurrentServer(), m.configPath)
-			if err != nil {
+			serverName := m.getCurrentServer()
+			if err := m.config.Delete(serverName); err != nil {
+				panic(err)
+			}
+			if err := security.DeletePassword(serverName); err != nil {
 				panic(err)
 			}
 			m.updateTable()

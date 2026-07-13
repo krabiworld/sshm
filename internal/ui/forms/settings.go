@@ -12,12 +12,12 @@ const (
 	SettingsIdentityFile = "identity_file"
 )
 
-func NewSettings(cfg config.Config) *huh.Form {
+func NewSettings(cfg *config.Config) *huh.Form {
 	var (
-		username     = cfg.Defaults.Username
-		port         = cfg.Defaults.Port
-		authType     = cfg.Defaults.AuthType
-		identityFile = cfg.Defaults.IdentityFile
+		username     = cfg.GetDefaults().Username
+		port         = cfg.GetDefaults().Port
+		authType     = cfg.GetDefaults().AuthType
+		identityFile = cfg.GetDefaults().IdentityFile
 	)
 	return huh.NewForm(
 		huh.NewGroup(
@@ -46,6 +46,6 @@ func NewSettings(cfg config.Config) *huh.Form {
 				Inline(true).
 				Validate(validateIsNotEmpty("Identity file")),
 			huh.NewConfirm().Affirmative("Save").Negative("Discard").Inline(true),
-		),
+		).Title("Settings"),
 	).WithWidth(80).WithTheme(FormTheme{})
 }

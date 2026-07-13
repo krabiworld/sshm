@@ -6,5 +6,6 @@ import (
 )
 
 var borderStyle = lipgloss.NewStyle().
+	Align(lipgloss.Center).
 	Border(lipgloss.RoundedBorder()).
 	BorderForeground(table.DefaultStyles().Selected.GetForeground())

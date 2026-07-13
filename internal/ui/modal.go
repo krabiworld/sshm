@@ -40,11 +40,11 @@ func (m model) updateServer(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.activeModal == modalModify {
 			currentName := m.table.SelectedRow()[0]
 			if currentName != forms.ServerName {
-				m.config.Delete(currentName, m.configPath)
+				m.config.Delete(currentName)
 			}
 		}
 
-		err := m.config.Save(formName, server, m.configPath)
+		err := m.config.Set(formName, server)
 		if err != nil {
 			panic(err)
 		}
@@ -80,17 +80,17 @@ func (m model) updateSettings(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.activeModal == modalModify {
 			currentName := m.table.SelectedRow()[0]
 			if currentName != forms.ServerName {
-				m.config.Delete(currentName, m.configPath)
+				m.config.Delete(currentName)
 			}
 		}
 
-		defaults := m.config.Defaults
+		defaults := m.config.GetDefaults()
 		defaults.Username = formUsername
 		defaults.Port = formPort
 		defaults.AuthType = formAuthType
 		defaults.IdentityFile = formIdentityFile
 
-		if err := m.config.SaveDefaults(defaults, m.configPath); err != nil {
+		if err := m.config.SetDefaults(defaults); err != nil {
 			panic(err)
 		}
 

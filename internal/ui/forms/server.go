@@ -15,19 +15,21 @@ const (
 	ServerPassword     = "password"
 )
 
-func NewServer(cfg config.Config, currentName string) *huh.Form {
+func NewServer(cfg *config.Config, currentName string) *huh.Form {
 	var (
+		title = "Add new server"
 		name     = currentName
 		address  string
 		username string
 		port     string
-		authType = cfg.Defaults.AuthType
+		authType = cfg.GetDefaults().AuthType
 		identity string
 		password string
 	)
 
-	currentServer := cfg.GetOriginal(currentName)
+	currentServer := cfg.GetRaw(currentName)
 	if currentServer != (config.Server{}) {
+		title = "Modify server"
 		address = currentServer.Address
 		username = currentServer.Username
 		port = currentServer.Port
@@ -55,13 +57,13 @@ func NewServer(cfg config.Config, currentName string) *huh.Form {
 			huh.NewInput().
 				Key(ServerUsername).
 				Title("Username").
-				Placeholder(cfg.Defaults.Username).
+				Placeholder(cfg.GetDefaults().Username).
 				Value(&username).
 				Inline(true),
 			huh.NewInput().
 				Key(ServerPort).
 				Title("Port").
-				Placeholder(cfg.Defaults.Port).
+				Placeholder(cfg.GetDefaults().Port).
 				Value(&port).
 				Inline(true).
 				Validate(validatePort),
@@ -74,7 +76,7 @@ func NewServer(cfg config.Config, currentName string) *huh.Form {
 			huh.NewInput().
 				Key(ServerIdentityFile).
 				Title("Identity file").
-				Placeholder(cfg.Defaults.IdentityFile).
+				Placeholder(cfg.GetDefaults().IdentityFile).
 				Value(&identity).
 				Inline(true),
 			huh.NewInput().
@@ -84,6 +86,6 @@ func NewServer(cfg config.Config, currentName string) *huh.Form {
 				Value(&password).
 				Inline(true),
 			huh.NewConfirm().Affirmative("Save").Negative("Discard").Inline(true),
-		),
+		).Title(title),
 	).WithWidth(80).WithTheme(FormTheme{})
 }

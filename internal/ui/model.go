@@ -27,8 +27,7 @@ var columns = []table.Column{
 }
 
 type model struct {
-	config          config.Config
-	configPath      string
+	config          *config.Config
 	table           table.Model
 	searchInput     textinput.Model
 	form            *huh.Form
@@ -37,10 +36,9 @@ type model struct {
 	totalHeight     int
 }
 
-func NewModel(cfg config.Config, cfgPath string) model {
+func NewModel(cfg *config.Config) model {
 	m := model{
 		config:     cfg,
-		configPath: cfgPath,
 		table: table.New(
 			table.WithColumns(columns),
 			table.WithFocused(true),
