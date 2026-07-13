@@ -6,6 +6,7 @@ import (
 
 	"charm.land/bubbles/v2/table"
 	"github.com/krabiworld/sshm/internal/config"
+	"github.com/krabiworld/sshm/internal/utils"
 )
 
 func (m *model) updateTable() {
@@ -29,8 +30,20 @@ func (m *model) updateTable() {
 			}
 		}
 
+		var username string
+		if server.Username == utils.GetCurrentUsername() && m.config.Defaults.Username == "" {
+			username = server.Username + " (c)"
+		} else {
+			username = m.appendDefaultTag(server.Username, m.config.Defaults.Username)
+		}
+
+		authType := server.AuthType
+		if authType == "" {
+			authType = m.config.Defaults.AuthType
+		}
+
 		var identity string
-		if server.AuthType == config.AuthPassword {
+		if authType == config.AuthPassword {
 			identity = "Password"
 			if m.config.Defaults.AuthType == config.AuthPassword {
 				identity += " (d)"
@@ -42,7 +55,7 @@ func (m *model) updateTable() {
 		rows = append(rows, table.Row{
 			name,
 			server.Address,
-			m.appendDefaultTag(server.Username, m.config.Defaults.Username),
+			username,
 			m.appendDefaultTag(server.Port, m.config.Defaults.Port),
 			identity,
 		})

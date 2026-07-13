@@ -3,6 +3,7 @@ package forms
 import (
 	"charm.land/huh/v2"
 	"github.com/krabiworld/sshm/internal/config"
+	"github.com/krabiworld/sshm/internal/utils"
 )
 
 const (
@@ -23,9 +24,9 @@ func NewSettings(cfg config.Config) *huh.Form {
 			huh.NewInput().
 				Key(ServerUsername).
 				Title("Username").
+				Placeholder(utils.GetCurrentUsername()).
 				Value(&username).
-				Inline(true).
-				Validate(validateIsNotEmpty("Username")),
+				Inline(true),
 			huh.NewInput().
 				Key(ServerPort).
 				Title("Port").
