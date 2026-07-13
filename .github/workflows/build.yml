@@ -47,16 +47,27 @@ jobs:
           export GOARCH=${{ matrix.arch }}
           go build -ldflags="-s -w" -trimpath -o dist/sshm-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.ext }} ./cmd/sshm
 
+      - uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
+        with:
+          file: dist/sshm-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.ext }}
+          output-file: sbom/sshm-${{ matrix.os }}-${{ matrix.arch }}-sbom.cyclonedx.json
+          format: cyclonedx-json
+          upload-artifact: false
+          upload-release-assets: false
+
       - name: Generate artifact attestation
         uses: actions/attest@v4
         with:
           subject-path: dist/*
+          sbom-path: sbom/*
 
-      - name: Upload binaries
+      - name: Upload artifacts
         uses: actions/upload-artifact@v7
         with:
           name: sshm-${{ matrix.os }}-${{ matrix.arch }}
-          path: dist/*
+          path: |
+              dist/
+              sbom/
 
   release:
     runs-on: ubuntu-latest
@@ -81,10 +92,11 @@ jobs:
           echo "New tag: $new_tag"
           echo "new_tag=$new_tag" >> $GITHUB_OUTPUT
 
-      - name: Download all binaries
+      - name: Download all artifacts
         uses: actions/download-artifact@v8
         with:
           path: dist
+          merge-multiple: true
 
       - name: Release
         uses: softprops/action-gh-release@718ea10b132b3b2eba29c1007bb80653f286566b # v3.0.1
