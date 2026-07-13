@@ -16,6 +16,7 @@ const (
 	modalModify
 	modalDelete
 	modalSettings
+	modalError
 )
 
 var columns = []table.Column{
@@ -27,18 +28,19 @@ var columns = []table.Column{
 }
 
 type model struct {
-	config          *config.Config
-	table           table.Model
-	searchInput     textinput.Model
-	form            *huh.Form
-	activeModal     modalType
-	totalWidth      int
-	totalHeight     int
+	config       *config.Config
+	table        table.Model
+	searchInput  textinput.Model
+	form         *huh.Form
+	activeModal  modalType
+	totalWidth   int
+	totalHeight  int
+	errorMessage string
 }
 
 func NewModel(cfg *config.Config) model {
 	m := model{
-		config:     cfg,
+		config: cfg,
 		table: table.New(
 			table.WithColumns(columns),
 			table.WithFocused(true),

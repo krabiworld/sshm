@@ -1,8 +1,11 @@
 package utils
 
 import (
+	"fmt"
+	"net"
 	"os"
 	"path/filepath"
+	"runtime"
 
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/knownhosts"
@@ -11,6 +14,8 @@ import (
 const (
 	sshDirPerm        os.FileMode = 0700
 	sshKnownHostsPerm os.FileMode = 0600
+
+	sshAgentEnv = "SSH_AUTH_SOCK"
 )
 
 func GetAuthMethod(keyPath string, password string) ssh.AuthMethod {
@@ -63,4 +68,18 @@ func AddHostKey(hostname string, key ssh.PublicKey) error {
 
 func CreateSshDir() error {
 	return os.MkdirAll(filepath.Dir(ExpandPath("~/.ssh")), sshDirPerm)
+}
+
+func GetAgentDial() (net.Conn, error) {
+	socket := os.Getenv(sshAgentEnv)
+
+	if socket == "" && runtime.GOOS == "windows" {
+		socket = `\\.\pipe\openssh-ssh-agent`
+	}
+
+	if socket == "" {
+		return nil, fmt.Errorf(sshAgentEnv + " is not defined")
+	}
+
+	return dialNamedPipe(socket)
 }

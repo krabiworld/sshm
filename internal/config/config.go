@@ -12,6 +12,7 @@ type AuthType string
 const (
 	AuthKey      AuthType = "key"
 	AuthPassword AuthType = "password"
+	AuthAgent    AuthType = "agent"
 )
 
 type Defaults struct {

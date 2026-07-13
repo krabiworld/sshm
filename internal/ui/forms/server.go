@@ -17,7 +17,7 @@ const (
 
 func NewServer(cfg *config.Config, currentName string) *huh.Form {
 	var (
-		title = "Add new server"
+		title    = "Add new server"
 		name     = currentName
 		address  string
 		username string
@@ -70,7 +70,11 @@ func NewServer(cfg *config.Config, currentName string) *huh.Form {
 			huh.NewSelect[config.AuthType]().
 				Key(ServerAuthType).
 				Title("Auth type").
-				Options(huh.NewOption("key", config.AuthKey), huh.NewOption("password", config.AuthPassword)).
+				Options(
+					huh.NewOption("key", config.AuthKey),
+					huh.NewOption("password", config.AuthPassword),
+					huh.NewOption("agent", config.AuthAgent),
+				).
 				Value(&authType).
 				Inline(true),
 			huh.NewInput().

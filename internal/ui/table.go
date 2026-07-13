@@ -43,13 +43,19 @@ func (m *model) updateTable() {
 		}
 
 		var identity string
-		if authType == config.AuthPassword {
+		switch authType {
+		case config.AuthPassword:
 			identity = "Password"
 			if m.config.GetDefaults().AuthType == config.AuthPassword {
 				identity += " (d)"
 			}
-		} else {
+		case config.AuthKey:
 			identity = m.appendDefaultTag(server.IdentityFile, m.config.GetDefaults().IdentityFile)
+		case config.AuthAgent:
+			identity = "Agent"
+			if m.config.GetDefaults().AuthType == config.AuthAgent {
+				identity += " (d)"
+			}
 		}
 
 		rows = append(rows, table.Row{

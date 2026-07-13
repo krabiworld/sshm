@@ -17,8 +17,15 @@ import (
 	"github.com/krabiworld/sshm/internal/utils"
 	"github.com/muesli/cancelreader"
 	"golang.org/x/crypto/ssh"
+	"golang.org/x/crypto/ssh/agent"
 	"golang.org/x/crypto/ssh/knownhosts"
 )
+
+type sshMsg struct {
+	err error
+}
+
+func (e sshMsg) Error() string { return e.err.Error() }
 
 type sshCmd struct {
 	serverName string
@@ -72,7 +79,7 @@ func (s *sshCmd) Run() error {
 	case config.AuthPassword:
 		pw, err := security.GetPassword(s.serverName)
 		if err != nil {
-			panic(err)
+			return fmt.Errorf("Password retrieval error: %w", err)
 		}
 		auth = ssh.Password(pw)
 	case config.AuthKey:
@@ -80,26 +87,35 @@ func (s *sshCmd) Run() error {
 		if s.server.HasPassphrase {
 			p, err := security.GetPassword(s.serverName)
 			if err != nil {
-				panic(err)
+				return fmt.Errorf("Passphrase retrieval error: %w", err)
 			}
 			passphrase = p
 		}
 		auth = utils.GetAuthMethod(s.server.IdentityFile, passphrase)
+	case config.AuthAgent:
+		agentDial, err := utils.GetAgentDial()
+		if err != nil {
+			return fmt.Errorf("Cannot connect to ssh-agent: %w", err)
+		}
+
+		agentClient := agent.NewClient(agentDial)
+
+		auth = ssh.PublicKeysCallback(agentClient.Signers)
 	default:
-		panic("Unknown auth method")
+		return fmt.Errorf("Unknown auth method: %s", s.server.AuthType)
 	}
 
 	clientConfig.Auth = []ssh.AuthMethod{auth}
 
 	client, err := ssh.Dial("tcp", fmt.Sprintf("%s:%s", s.server.Address, s.server.Port), clientConfig)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	session, err := client.NewSession()
 	if err != nil {
 		client.Close()
-		panic(err)
+		return fmt.Errorf("Cannot create session: %w", err)
 	}
 
 	defer client.Close()
@@ -107,7 +123,7 @@ func (s *sshCmd) Run() error {
 
 	cancelableStdin, err := cancelreader.NewReader(os.Stdin)
 	if err != nil {
-		panic(err)
+		return fmt.Errorf("Cannot initialize stdin: %w", err)
 	}
 
 	defer cancelableStdin.Cancel()
@@ -151,7 +167,13 @@ func (s *sshCmd) SetStderr(w io.Writer) {}
 func (m model) connectSsh(name string) tea.Cmd {
 	server := m.config.Get(name)
 
-	return tea.Exec(&sshCmd{serverName: name, server: server}, nil)
+	return tea.Exec(&sshCmd{serverName: name, server: server}, func(err error) tea.Msg {
+		if err != nil {
+			return sshMsg{err}
+		}
+
+		return nil
+	})
 }
 
 func (m model) copyId(name string) tea.Cmd {

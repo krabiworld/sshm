@@ -19,6 +19,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 		} else if keyMsg.String() == "esc" && m.activeModal != modalNone {
 			m.activeModal = modalNone
+			return m, nil
 		}
 	}
 
@@ -28,6 +29,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.totalHeight = msg.Height
 
 		m.recalculateTable()
+	case sshMsg:
+		m.errorMessage = m.humanizeError(msg.err)
+		m.activeModal = modalError
+		return m, nil
 	}
 
 	switch m.activeModal {
@@ -56,13 +61,16 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, cmd
 	case modalSettings:
 		return m.updateSettings(msg)
+	case modalError:
+		if keyMsg, ok := msg.(tea.KeyPressMsg); ok && keyMsg.String() == "enter" {
+			m.activeModal = modalNone
+		}
+		return m, nil
 	}
 
 	switch msg := msg.(type) {
 	case tea.KeyPressMsg:
 		switch msg.String() {
-		case "ctrl+c", "q":
-			cmds = append(cmds, tea.Quit)
 		case "enter":
 			return m, m.connectSsh(m.getCurrentServer())
 		case "ctrl+f":
