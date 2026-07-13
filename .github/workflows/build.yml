@@ -41,13 +41,14 @@ jobs:
 
       - name: Build
         run: |
-          mkdir dist
+          mkdir dist sbom
           export CGO_ENABLED=0
           export GOOS=${{ matrix.os }}
           export GOARCH=${{ matrix.arch }}
           go build -ldflags="-s -w" -trimpath -o dist/sshm-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.ext }} ./cmd/sshm
 
-      - uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
+      - name: Generate sbom
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
         with:
           file: dist/sshm-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.ext }}
           output-file: sbom/sshm-${{ matrix.os }}-${{ matrix.arch }}-sbom.cyclonedx.json
