@@ -59,8 +59,8 @@ jobs:
       - name: Generate artifact attestation
         uses: actions/attest@v4
         with:
-          subject-path: dist/*
-          sbom-path: sbom/*
+          subject-path: dist/sshm-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.ext }}
+          sbom-path: sbom/sshm-${{ matrix.os }}-${{ matrix.arch }}-sbom.cyclonedx.json
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v7
