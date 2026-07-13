@@ -2,9 +2,15 @@ package utils
 
 import (
 	"os"
+	"path/filepath"
 
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/knownhosts"
+)
+
+const (
+	sshDirPerm        os.FileMode = 0700
+	sshKnownHostsPerm os.FileMode = 0600
 )
 
 func GetAuthMethod(keyPath string, password string) ssh.AuthMethod {
@@ -28,10 +34,33 @@ func GetAuthMethod(keyPath string, password string) ssh.AuthMethod {
 }
 
 func GetKnownHosts() ssh.HostKeyCallback {
-	callback, err := knownhosts.New(ExpandPath("~/.ssh/known_hosts"))
+	path := ExpandPath("~/.ssh/known_hosts")
+
+	f, err := os.OpenFile(path, os.O_RDONLY|os.O_CREATE, sshKnownHostsPerm)
+	if err != nil {
+		panic(err)
+	}
+	f.Close()
+
+	callback, err := knownhosts.New(path)
 	if err != nil {
 		panic(err)
 	}
 
 	return callback
+}
+
+func AddHostKey(hostname string, key ssh.PublicKey) error {
+	f, err := os.OpenFile(ExpandPath("~/.ssh/known_hosts"), os.O_APPEND|os.O_CREATE|os.O_WRONLY, sshKnownHostsPerm)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	_, err = f.WriteString(knownhosts.Line([]string{hostname}, key) + "\n")
+	return err
+}
+
+func CreateSshDir() error {
+	return os.MkdirAll(filepath.Dir(ExpandPath("~/.ssh")), sshDirPerm)
 }
