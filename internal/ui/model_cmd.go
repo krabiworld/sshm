@@ -1,16 +1,12 @@
 package ui
 
 import (
-	"bufio"
 	"errors"
 	"fmt"
 	"io"
 	"net"
 	"os"
 	"os/exec"
-	"os/signal"
-	"strings"
-	"syscall"
 
 	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/x/term"
@@ -22,6 +18,15 @@ import (
 	"golang.org/x/crypto/ssh/agent"
 	"golang.org/x/crypto/ssh/knownhosts"
 )
+
+type hostKeyRequiredError struct {
+	hostname string
+	key      ssh.PublicKey
+}
+
+func (e *hostKeyRequiredError) Error() string {
+	return "host key confirmation required"
+}
 
 type sshConnectedMsg struct {
 	client       *ssh.Client
@@ -58,18 +63,16 @@ func (s *sshConnectedMsg) Run() error {
 		return err
 	}
 
-	sigch := make(chan os.Signal, 1)
-	signal.Notify(sigch, syscall.SIGWINCH)
+	resizeChan, cleanup := utils.WatchTermResize(fd)
+	defer cleanup()
 
 	go func() {
-		for range sigch {
+		for range resizeChan {
 			if w, h, err := term.GetSize(fd); err == nil {
 				_ = s.session.WindowChange(h, w)
 			}
 		}
 	}()
-
-	defer signal.Stop(sigch)
 
 	return s.session.Wait()
 }
@@ -92,31 +95,10 @@ func (m model) dialSsh(name string) tea.Cmd {
 
 				if keyErr, ok := errors.AsType[*knownhosts.KeyError](err); ok {
 					if len(keyErr.Want) == 0 {
-						fingerprint := ssh.FingerprintSHA256(key)
-
-						// TODO: Rewrite to modals
-						fmt.Printf("The authenticity of host '%s' can't be established.\n", hostname)
-						fmt.Printf("%s key fingerprint is: %s\n", key.Type(), fingerprint)
-						fmt.Println("This key is not known by any other names.")
-						fmt.Print("Are you sure you want to continue connecting (yes/no)? ")
-
-						reader := bufio.NewReader(os.Stdin)
-						answer, _ := reader.ReadString('\n')
-						answer = strings.TrimSpace(strings.ToLower(answer))
-
-						if answer == "yes" {
-							err := utils.AddHostKey(hostname, key)
-							if err != nil {
-								fmt.Printf("Warning: Failed to add host to the list of known hosts: %v\n", err)
-							}
-							return nil
-						}
-
-						return fmt.Errorf("Host key verification failed.")
+						return &hostKeyRequiredError{hostname, key}
 					}
 
-					fmt.Println("Warning: remote host identification has changed!")
-					return err
+					return errors.New("Warning: remote host identification has changed!")
 				}
 
 				return err
@@ -189,6 +171,9 @@ func (m model) dialSsh(name string) tea.Cmd {
 
 func (m model) runSshSession(msg *sshConnectedMsg) tea.Cmd {
 	return tea.Exec(msg, func(err error) tea.Msg {
+		if _, ok := errors.AsType[*ssh.ExitError](err); ok {
+			return nil
+		}
 		if err != nil {
 			return errMsg{err}
 		}

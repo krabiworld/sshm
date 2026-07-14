@@ -1,12 +1,17 @@
 package ui
 
 import (
+	"errors"
+	"fmt"
+
 	"charm.land/bubbles/v2/spinner"
 	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/huh/v2"
 	"github.com/krabiworld/sshm/internal/security"
 	"github.com/krabiworld/sshm/internal/ui/forms"
+	"github.com/krabiworld/sshm/internal/utils"
+	"golang.org/x/crypto/ssh"
 )
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -25,6 +30,16 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.activeModal = modalNone
 		return m, m.runSshSession(msg)
 	case errMsg:
+		if hostKeyErr, ok := errors.AsType[*hostKeyRequiredError](msg.err); ok {
+			m.activeModal = modalHostKeyRequired
+			m.hostKeyRequiredErr = hostKeyErr
+			m.form = forms.NewConfirm(fmt.Sprintf(
+				"%s key fingerprint is: %s\n"+
+					"This key is not known by any other names.\n"+
+					"Are you sure you want to continue connecting?",
+				hostKeyErr.key.Type(), ssh.FingerprintSHA256(hostKeyErr.key)))
+			return m, m.form.Init()
+		}
 		m.error = msg.err
 		m.activeModal = modalError
 		return m, nil
@@ -57,7 +72,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if f, ok := form.(*huh.Form); ok {
 			m.form = f
 		}
-		if m.form.State == huh.StateCompleted && m.form.GetBool(forms.DeleteConfirmed) {
+		if m.form.State == huh.StateCompleted && m.form.GetBool(forms.FormConfirmed) {
 			serverName := m.getCurrentServer()
 			if err := m.config.Delete(serverName); err != nil {
 				return m, errCmd(err)
@@ -73,6 +88,24 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, cmd
 	case modalSettings:
 		return m.updateSettings(msg)
+	case modalHostKeyRequired:
+		form, cmd := m.form.Update(msg)
+		if f, ok := form.(*huh.Form); ok {
+			m.form = f
+		}
+		if m.form.State == huh.StateCompleted && m.form.GetBool(forms.FormConfirmed) {
+			err := utils.AddHostKey(m.hostKeyRequiredErr.hostname, m.hostKeyRequiredErr.key)
+			if err != nil {
+				return m, errCmd(err)
+			}
+			m.hostKeyRequiredErr = nil
+			m.activeModal = modalConnecting
+			return m, tea.Batch(m.dialSsh(m.getCurrentServer()), m.spinner.Tick)
+		}
+		if m.form.State == huh.StateCompleted || m.form.State == huh.StateAborted {
+			m.activeModal = modalNone
+		}
+		return m, cmd
 	case modalError:
 		if keyMsg, ok := msg.(tea.KeyPressMsg); ok && keyMsg.String() == "enter" {
 			m.activeModal = modalNone
@@ -100,7 +133,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, m.form.Init()
 		case "ctrl+d":
 			m.activeModal = modalDelete
-			m.form = forms.NewDelete(m.getCurrentServer())
+			m.form = forms.NewConfirm(fmt.Sprintf("Are you sure you want to delete %s?", m.getCurrentServer()))
 			return m, m.form.Init()
 		case "ctrl+i":
 			return m, m.copyId(m.getCurrentServer())

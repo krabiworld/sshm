@@ -18,6 +18,7 @@ const (
 	modalDelete
 	modalSettings
 	modalConnecting
+	modalHostKeyRequired
 	modalError
 )
 
@@ -30,15 +31,16 @@ var columns = []table.Column{
 }
 
 type model struct {
-	config      *config.Config
-	table       table.Model
-	searchInput textinput.Model
-	form        *huh.Form
-	spinner     spinner.Model
-	activeModal modalType
-	totalWidth  int
-	totalHeight int
-	error       error
+	config             *config.Config
+	table              table.Model
+	searchInput        textinput.Model
+	form               *huh.Form
+	spinner            spinner.Model
+	activeModal        modalType
+	totalWidth         int
+	totalHeight        int
+	error              error
+	hostKeyRequiredErr *hostKeyRequiredError
 }
 
 func NewModel(cfg *config.Config) model {
@@ -49,7 +51,7 @@ func NewModel(cfg *config.Config) model {
 			table.WithFocused(true),
 		),
 		searchInput: textinput.New(),
-		spinner: spinner.New(),
+		spinner:     spinner.New(),
 	}
 
 	m.spinner.Spinner = spinner.Dot
