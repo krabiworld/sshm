@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"charm.land/bubbles/v2/spinner"
 	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/huh/v2"
@@ -9,33 +10,44 @@ import (
 )
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	var (
-		cmd  tea.Cmd
-		cmds []tea.Cmd
-	)
-
-	if keyMsg, ok := msg.(tea.KeyPressMsg); ok {
-		if keyMsg.String() == "ctrl+c" {
-			return m, tea.Quit
-		} else if keyMsg.String() == "esc" && m.activeModal != modalNone {
-			m.activeModal = modalNone
-			return m, nil
-		}
-	}
-
+	// Global
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.totalWidth = msg.Width
 		m.totalHeight = msg.Height
 
 		m.recalculateTable()
-	case sshMsg:
-		m.errorMessage = m.humanizeError(msg.err)
+	case spinner.TickMsg:
+		var cmd tea.Cmd
+		m.spinner, cmd = m.spinner.Update(msg)
+		return m, cmd
+	case *sshConnectedMsg:
+		m.activeModal = modalNone
+		return m, m.runSshSession(msg)
+	case errMsg:
+		m.error = msg.err
 		m.activeModal = modalError
 		return m, nil
+	case tea.KeyPressMsg:
+		switch msg.String() {
+		case "ctrl+c":
+			return m, tea.Quit
+		case "esc":
+			if m.activeModal == modalConnecting {
+				return m, nil
+			}
+
+			if m.activeModal != modalNone {
+				m.activeModal = modalNone
+				return m, nil
+			}
+		}
 	}
 
+	// Modal
 	switch m.activeModal {
+	case modalConnecting:
+		return m, nil
 	case modalSearch:
 		return m.updateSearch(msg)
 	case modalCreate, modalModify:
@@ -48,10 +60,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.form.State == huh.StateCompleted && m.form.GetBool(forms.DeleteConfirmed) {
 			serverName := m.getCurrentServer()
 			if err := m.config.Delete(serverName); err != nil {
-				panic(err)
+				return m, errCmd(err)
 			}
 			if err := security.DeletePassword(serverName); err != nil {
-				panic(err)
+				return m, errCmd(err)
 			}
 			m.updateTable()
 		}
@@ -68,11 +80,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
-	switch msg := msg.(type) {
-	case tea.KeyPressMsg:
-		switch msg.String() {
+	// Table
+	if keyMsg, ok := msg.(tea.KeyPressMsg); ok {
+		switch keyMsg.String() {
 		case "enter":
-			return m, m.connectSsh(m.getCurrentServer())
+			m.activeModal = modalConnecting
+			return m, tea.Batch(m.dialSsh(m.getCurrentServer()), m.spinner.Tick)
 		case "ctrl+f":
 			m.activeModal = modalSearch
 			m.searchInput.Focus()
@@ -98,8 +111,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 
+	var cmd tea.Cmd
 	m.table, cmd = m.table.Update(msg)
-	cmds = append(cmds, cmd)
 
-	return m, tea.Batch(cmds...)
+	return m, cmd
 }

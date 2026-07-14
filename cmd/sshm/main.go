@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 
 	tea "charm.land/bubbletea/v2"
 	"github.com/krabiworld/sshm/internal/config"
@@ -20,6 +21,6 @@ func main() {
 
 	p := tea.NewProgram(ui.NewModel(cfg))
 	if _, err := p.Run(); err != nil {
-		panic(err)
+		fmt.Println(err)
 	}
 }

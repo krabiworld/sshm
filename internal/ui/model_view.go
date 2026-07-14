@@ -6,7 +6,7 @@ import (
 )
 
 func (m model) View() tea.View {
-	footer := " ^F Search | ^A Add | ^M Modify | ^D Delete | ^I Copy ID | ^X Settings"
+	footer := paddingStyle.Render("^F Search | ^A Add | ^M Modify | ^D Delete | ^I Copy ID | ^X Settings")
 
 	if m.activeModal == modalSearch {
 		footer = lipgloss.JoinHorizontal(lipgloss.Left, " Search", m.searchInput.View())
@@ -20,14 +20,17 @@ func (m model) View() tea.View {
 		)),
 	}
 
-	if m.activeModal != modalNone && m.activeModal != modalSearch && m.activeModal != modalError {
+	if m.activeModal == modalConnecting {
+		spin := m.spinner.View()
+		content := lipgloss.JoinHorizontal(lipgloss.Center, spin, "Connecting to server...")
+		layers = m.appendModal(layers, paddingStyle.Render(content))
+	} else if m.activeModal != modalNone && m.activeModal != modalSearch && m.activeModal != modalError && m.activeModal != modalConnecting {
 		layers = m.appendModal(layers, m.form.View())
-	}
-	if m.activeModal == modalError {
-		textWidth := m.totalWidth - 40
+	} else if m.activeModal == modalError {
+		textWidth := m.totalWidth - 50
 
-		errorStyle := lipgloss.NewStyle().Width(textWidth)
-		errorContent := errorStyle.Render("Error:\n" + m.errorMessage)
+		errorStyle := paddingStyle.Width(textWidth)
+		errorContent := errorStyle.Render("Error:\n" + m.humanizeError(m.error))
 
 		layers = m.appendModal(layers, errorContent)
 	}

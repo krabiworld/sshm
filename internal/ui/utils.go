@@ -3,10 +3,16 @@ package ui
 import (
 	"strings"
 	"unicode"
+
+	tea "charm.land/bubbletea/v2"
 )
 
-func (m model) getCurrentServer() string {
-	return m.table.SelectedRow()[0]
+type errMsg struct {
+	err error
+}
+
+func errCmd(err error) tea.Cmd {
+	return func() tea.Msg { return errMsg{err} }
 }
 
 func (m model) humanizeError(err error) string {
@@ -34,4 +40,8 @@ func (m model) humanizeError(err error) string {
 	}
 
 	return result
+}
+
+func (m model) getCurrentServer() string {
+	return m.table.SelectedRow()[0]
 }

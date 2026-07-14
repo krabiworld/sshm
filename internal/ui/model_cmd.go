@@ -8,7 +8,9 @@ import (
 	"net"
 	"os"
 	"os/exec"
+	"os/signal"
 	"strings"
+	"syscall"
 
 	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/x/term"
@@ -21,116 +23,16 @@ import (
 	"golang.org/x/crypto/ssh/knownhosts"
 )
 
-type sshMsg struct {
-	err error
+type sshConnectedMsg struct {
+	client       *ssh.Client
+	session      *ssh.Session
+	cancelReader cancelreader.CancelReader
 }
 
-func (e sshMsg) Error() string { return e.err.Error() }
-
-type sshCmd struct {
-	serverName string
-	server     config.Server
-}
-
-func (s *sshCmd) Run() error {
-	clientConfig := &ssh.ClientConfig{
-		User: s.server.Username,
-		HostKeyCallback: func(hostname string, remote net.Addr, key ssh.PublicKey) error {
-			err := utils.GetKnownHosts()(hostname, remote, key)
-			if err == nil {
-				return nil
-			}
-
-			if keyErr, ok := errors.AsType[*knownhosts.KeyError](err); ok {
-				if len(keyErr.Want) == 0 {
-					fingerprint := ssh.FingerprintSHA256(key)
-
-					fmt.Printf("The authenticity of host '%s' can't be established.\n", hostname)
-					fmt.Printf("%s key fingerprint is: %s\n", key.Type(), fingerprint)
-					fmt.Println("This key is not known by any other names.")
-					fmt.Print("Are you sure you want to continue connecting (yes/no)? ")
-
-					reader := bufio.NewReader(os.Stdin)
-					answer, _ := reader.ReadString('\n')
-					answer = strings.TrimSpace(strings.ToLower(answer))
-
-					if answer == "yes" {
-						err := utils.AddHostKey(hostname, key)
-						if err != nil {
-							fmt.Printf("Warning: Failed to add host to the list of known hosts: %v\n", err)
-						}
-						return nil
-					}
-
-					return fmt.Errorf("Host key verification failed.")
-				}
-
-				fmt.Println("Warning: remote host identification has changed!")
-				return err
-			}
-
-			return err
-		},
-	}
-
-	var auth ssh.AuthMethod
-
-	switch s.server.AuthType {
-	case config.AuthPassword:
-		pw, err := security.GetPassword(s.serverName)
-		if err != nil {
-			return fmt.Errorf("Password retrieval error: %w", err)
-		}
-		auth = ssh.Password(pw)
-	case config.AuthKey:
-		var passphrase string
-		if s.server.HasPassphrase {
-			p, err := security.GetPassword(s.serverName)
-			if err != nil {
-				return fmt.Errorf("Passphrase retrieval error: %w", err)
-			}
-			passphrase = p
-		}
-		auth = utils.GetAuthMethod(s.server.IdentityFile, passphrase)
-	case config.AuthAgent:
-		agentDial, err := utils.GetAgentDial()
-		if err != nil {
-			return fmt.Errorf("Cannot connect to ssh-agent: %w", err)
-		}
-
-		agentClient := agent.NewClient(agentDial)
-
-		auth = ssh.PublicKeysCallback(agentClient.Signers)
-	default:
-		return fmt.Errorf("Unknown auth method: %s", s.server.AuthType)
-	}
-
-	clientConfig.Auth = []ssh.AuthMethod{auth}
-
-	client, err := ssh.Dial("tcp", fmt.Sprintf("%s:%s", s.server.Address, s.server.Port), clientConfig)
-	if err != nil {
-		return err
-	}
-
-	session, err := client.NewSession()
-	if err != nil {
-		client.Close()
-		return fmt.Errorf("Cannot create session: %w", err)
-	}
-
-	defer client.Close()
-	defer session.Close()
-
-	cancelableStdin, err := cancelreader.NewReader(os.Stdin)
-	if err != nil {
-		return fmt.Errorf("Cannot initialize stdin: %w", err)
-	}
-
-	defer cancelableStdin.Cancel()
-
-	session.Stdin = cancelableStdin
-	session.Stdout = os.Stdout
-	session.Stderr = os.Stderr
+func (s *sshConnectedMsg) Run() error {
+	defer s.client.Close()
+	defer s.session.Close()
+	defer s.cancelReader.Cancel()
 
 	fd := os.Stdin.Fd()
 	oldState, err := term.MakeRaw(fd)
@@ -149,29 +51,147 @@ func (s *sshCmd) Run() error {
 		ssh.TTY_OP_ISPEED: 14400,
 		ssh.TTY_OP_OSPEED: 14400,
 	}
-	if err := session.RequestPty("xterm-256color", h, w, modes); err != nil {
-		return fmt.Errorf("request for pty failed: %w", err)
+	if err := s.session.RequestPty("xterm-256color", h, w, modes); err != nil {
+		return err
+	}
+	if err := s.session.Shell(); err != nil {
+		return err
 	}
 
-	if err := session.Shell(); err != nil {
-		return fmt.Errorf("failed to start shell: %w", err)
-	}
+	sigch := make(chan os.Signal, 1)
+	signal.Notify(sigch, syscall.SIGWINCH)
 
-	return session.Wait()
+	go func() {
+		for range sigch {
+			if w, h, err := term.GetSize(fd); err == nil {
+				_ = s.session.WindowChange(h, w)
+			}
+		}
+	}()
+
+	defer signal.Stop(sigch)
+
+	return s.session.Wait()
 }
 
-func (s *sshCmd) SetStdin(r io.Reader)  {}
-func (s *sshCmd) SetStdout(w io.Writer) {}
-func (s *sshCmd) SetStderr(w io.Writer) {}
+func (s *sshConnectedMsg) SetStdin(r io.Reader)  {}
+func (s *sshConnectedMsg) SetStdout(w io.Writer) {}
+func (s *sshConnectedMsg) SetStderr(w io.Writer) {}
 
-func (m model) connectSsh(name string) tea.Cmd {
-	server := m.config.Get(name)
+func (m model) dialSsh(name string) tea.Cmd {
+	return func() tea.Msg {
+		server := m.config.Get(name)
 
-	return tea.Exec(&sshCmd{serverName: name, server: server}, func(err error) tea.Msg {
-		if err != nil {
-			return sshMsg{err}
+		clientConfig := &ssh.ClientConfig{
+			User: server.Username,
+			HostKeyCallback: func(hostname string, remote net.Addr, key ssh.PublicKey) error {
+				err := utils.GetKnownHosts()(hostname, remote, key)
+				if err == nil {
+					return nil
+				}
+
+				if keyErr, ok := errors.AsType[*knownhosts.KeyError](err); ok {
+					if len(keyErr.Want) == 0 {
+						fingerprint := ssh.FingerprintSHA256(key)
+
+						// TODO: Rewrite to modals
+						fmt.Printf("The authenticity of host '%s' can't be established.\n", hostname)
+						fmt.Printf("%s key fingerprint is: %s\n", key.Type(), fingerprint)
+						fmt.Println("This key is not known by any other names.")
+						fmt.Print("Are you sure you want to continue connecting (yes/no)? ")
+
+						reader := bufio.NewReader(os.Stdin)
+						answer, _ := reader.ReadString('\n')
+						answer = strings.TrimSpace(strings.ToLower(answer))
+
+						if answer == "yes" {
+							err := utils.AddHostKey(hostname, key)
+							if err != nil {
+								fmt.Printf("Warning: Failed to add host to the list of known hosts: %v\n", err)
+							}
+							return nil
+						}
+
+						return fmt.Errorf("Host key verification failed.")
+					}
+
+					fmt.Println("Warning: remote host identification has changed!")
+					return err
+				}
+
+				return err
+			},
 		}
 
+		var auth ssh.AuthMethod
+
+		switch server.AuthType {
+		case config.AuthPassword:
+			pw, err := security.GetPassword(name)
+			if err != nil {
+				return errMsg{fmt.Errorf("Password retrieval error: %w", err)}
+			}
+			auth = ssh.Password(pw)
+		case config.AuthKey:
+			var passphrase string
+			if server.HasPassphrase {
+				p, err := security.GetPassword(name)
+				if err != nil {
+					return errMsg{fmt.Errorf("Passphrase retrieval error: %w", err)}
+				}
+				passphrase = p
+			}
+			auth = utils.GetAuthMethod(server.IdentityFile, passphrase)
+		case config.AuthAgent:
+			agentDial, err := utils.GetAgentDial()
+			if err != nil {
+				return errMsg{fmt.Errorf("Cannot connect to ssh-agent: %w", err)}
+			}
+
+			agentClient := agent.NewClient(agentDial)
+
+			auth = ssh.PublicKeysCallback(agentClient.Signers)
+		default:
+			return errMsg{fmt.Errorf("Unknown auth method: %s", server.AuthType)}
+		}
+
+		clientConfig.Auth = []ssh.AuthMethod{auth}
+
+		client, err := ssh.Dial("tcp", fmt.Sprintf("%s:%s", server.Address, server.Port), clientConfig)
+		if err != nil {
+			return errMsg{err}
+		}
+
+		session, err := client.NewSession()
+		if err != nil {
+			client.Close()
+			return errMsg{err}
+		}
+
+		cancelableStdin, err := cancelreader.NewReader(os.Stdin)
+		if err != nil {
+			client.Close()
+			session.Close()
+			return errMsg{err}
+		}
+
+		session.Stdin = cancelableStdin
+		session.Stdout = os.Stdout
+		session.Stderr = os.Stderr
+
+		return &sshConnectedMsg{
+			client:       client,
+			session:      session,
+			cancelReader: cancelableStdin,
+		}
+	}
+}
+
+func (m model) runSshSession(msg *sshConnectedMsg) tea.Cmd {
+	return tea.Exec(msg, func(err error) tea.Msg {
+		if err != nil {
+			return errMsg{err}
+		}
 		return nil
 	})
 }

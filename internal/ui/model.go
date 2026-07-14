@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"charm.land/bubbles/v2/spinner"
 	"charm.land/bubbles/v2/table"
 	"charm.land/bubbles/v2/textinput"
 	"charm.land/huh/v2"
@@ -16,6 +17,7 @@ const (
 	modalModify
 	modalDelete
 	modalSettings
+	modalConnecting
 	modalError
 )
 
@@ -28,14 +30,15 @@ var columns = []table.Column{
 }
 
 type model struct {
-	config       *config.Config
-	table        table.Model
-	searchInput  textinput.Model
-	form         *huh.Form
-	activeModal  modalType
-	totalWidth   int
-	totalHeight  int
-	errorMessage string
+	config      *config.Config
+	table       table.Model
+	searchInput textinput.Model
+	form        *huh.Form
+	spinner     spinner.Model
+	activeModal modalType
+	totalWidth  int
+	totalHeight int
+	error       error
 }
 
 func NewModel(cfg *config.Config) model {
@@ -46,8 +49,10 @@ func NewModel(cfg *config.Config) model {
 			table.WithFocused(true),
 		),
 		searchInput: textinput.New(),
+		spinner: spinner.New(),
 	}
 
+	m.spinner.Spinner = spinner.Dot
 	m.updateTable()
 
 	return m
