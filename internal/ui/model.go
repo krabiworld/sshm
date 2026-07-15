@@ -40,7 +40,6 @@ type model struct {
 	totalWidth         int
 	totalHeight        int
 	error              error
-	hostKeyRequiredErr *hostKeyRequiredError
 }
 
 func NewModel(cfg *config.Config) model {

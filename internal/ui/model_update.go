@@ -32,7 +32,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case errMsg:
 		if hostKeyErr, ok := errors.AsType[*hostKeyRequiredError](msg.err); ok {
 			m.activeModal = modalHostKeyRequired
-			m.hostKeyRequiredErr = hostKeyErr
+			m.error = hostKeyErr
 			m.form = forms.NewConfirm(fmt.Sprintf(
 				"%s key fingerprint is: %s\n"+
 					"This key is not known by any other names.\n"+
@@ -94,13 +94,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.form = f
 		}
 		if m.form.State == huh.StateCompleted && m.form.GetBool(forms.FormConfirmed) {
-			err := utils.AddHostKey(m.hostKeyRequiredErr.hostname, m.hostKeyRequiredErr.key)
-			if err != nil {
-				return m, errCmd(err)
+			if hostKeyErr, ok := errors.AsType[*hostKeyRequiredError](m.error); ok {
+				err := utils.AddHostKey(hostKeyErr.hostname, hostKeyErr.key)
+				if err != nil {
+					return m, errCmd(err)
+				}
+				m.activeModal = modalConnecting
+				return m, tea.Batch(m.dialSsh(m.getCurrentServer()), m.spinner.Tick)
 			}
-			m.hostKeyRequiredErr = nil
-			m.activeModal = modalConnecting
-			return m, tea.Batch(m.dialSsh(m.getCurrentServer()), m.spinner.Tick)
 		}
 		if m.form.State == huh.StateCompleted || m.form.State == huh.StateAborted {
 			m.activeModal = modalNone

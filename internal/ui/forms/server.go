@@ -34,6 +34,9 @@ func NewServer(cfg *config.Config, currentName string) *huh.Form {
 		username = currentServer.Username
 		port = currentServer.Port
 		authType = currentServer.AuthType
+		if authType == "" {
+			authType = cfg.GetDefaults().AuthType
+		}
 		identity = currentServer.IdentityFile
 		if currentServer.HasPassphrase || currentServer.AuthType == config.AuthPassword {
 			password = "********"
