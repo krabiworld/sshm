@@ -23,18 +23,20 @@ func (m model) updateServer(msg tea.Msg) (tea.Model, tea.Cmd) {
 		formPort := m.form.GetString(forms.ServerPort)
 		formAuthType := m.form.Get(forms.ServerAuthType).(config.AuthType)
 		formIdentityFile := m.form.GetString(forms.ServerIdentityFile)
+		formKnownHostsFile := m.form.GetString(forms.ServerKnownHostsFile)
 		formPassword := m.form.GetString(forms.ServerPassword)
 
 		password := strings.TrimSpace(formPassword)
 		hasPassword := password != ""
 
 		server := config.Server{
-			Address:       formAddress,
-			Username:      formUsername,
-			Port:          formPort,
-			AuthType:      formAuthType,
-			IdentityFile:  formIdentityFile,
-			HasPassphrase: hasPassword,
+			Address:        formAddress,
+			Username:       formUsername,
+			Port:           formPort,
+			AuthType:       formAuthType,
+			IdentityFile:   formIdentityFile,
+			KnownHostsFile: formKnownHostsFile,
+			HasPassphrase:  hasPassword,
 		}
 
 		if m.activeModal == modalModify {
@@ -72,10 +74,11 @@ func (m model) updateSettings(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	if m.form.State == huh.StateCompleted {
-		formUsername := m.form.GetString(forms.SettingsUsername)
-		formPort := m.form.GetString(forms.SettingsPort)
+		formUsername := m.form.GetString(forms.ServerUsername)
+		formPort := m.form.GetString(forms.ServerPort)
 		formAuthType := m.form.Get(forms.ServerAuthType).(config.AuthType)
-		formIdentityFile := m.form.GetString(forms.SettingsIdentityFile)
+		formIdentityFile := m.form.GetString(forms.ServerIdentityFile)
+		formKnownHostsFile := m.form.GetString(forms.ServerKnownHostsFile)
 
 		if m.activeModal == modalModify {
 			currentName := m.table.SelectedRow()[0]
@@ -89,6 +92,7 @@ func (m model) updateSettings(msg tea.Msg) (tea.Model, tea.Cmd) {
 		defaults.Port = formPort
 		defaults.AuthType = formAuthType
 		defaults.IdentityFile = formIdentityFile
+		defaults.KnownHostsFile = formKnownHostsFile
 
 		if err := m.config.SetDefaults(defaults); err != nil {
 			panic(err)

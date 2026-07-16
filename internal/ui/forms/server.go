@@ -6,25 +6,27 @@ import (
 )
 
 const (
-	ServerName         = "name"
-	ServerAddress      = "address"
-	ServerUsername     = "username"
-	ServerPort         = "port"
-	ServerAuthType     = "auth_type"
-	ServerIdentityFile = "identity_file"
-	ServerPassword     = "password"
+	ServerName           = "name"
+	ServerAddress        = "address"
+	ServerUsername       = "username"
+	ServerPort           = "port"
+	ServerAuthType       = "auth_type"
+	ServerIdentityFile   = "identity_file"
+	ServerKnownHostsFile = "known_hosts_file"
+	ServerPassword       = "password"
 )
 
 func NewServer(cfg *config.Config, currentName string) *huh.Form {
 	var (
-		title    = "Add new server"
-		name     = currentName
-		address  string
-		username string
-		port     string
-		authType = cfg.GetDefaults().AuthType
-		identity string
-		password string
+		title          = "Add new server"
+		name           = currentName
+		address        string
+		username       string
+		port           string
+		authType       = cfg.GetDefaults().AuthType
+		identity       string
+		knownHostsFile string
+		password       string
 	)
 
 	currentServer := cfg.GetRaw(currentName)
@@ -38,7 +40,8 @@ func NewServer(cfg *config.Config, currentName string) *huh.Form {
 			authType = cfg.GetDefaults().AuthType
 		}
 		identity = currentServer.IdentityFile
-		if currentServer.HasPassphrase || currentServer.AuthType == config.AuthPassword {
+		knownHostsFile = currentServer.KnownHostsFile
+		if currentServer.HasPassphrase || currentServer.AuthType == config.AuthPassword || cfg.GetDefaults().AuthType == config.AuthPassword {
 			password = "********"
 		}
 	}
@@ -87,10 +90,16 @@ func NewServer(cfg *config.Config, currentName string) *huh.Form {
 				Value(&identity).
 				Inline(true),
 			huh.NewInput().
+				Key(ServerKnownHostsFile).
+				Title("Known hosts file").
+				Placeholder(cfg.GetDefaults().KnownHostsFile).
+				Value(&knownHostsFile).
+				Inline(true),
+			huh.NewInput().
 				Key(ServerPassword).
 				Title("Password").
 				EchoMode(huh.EchoModePassword).
-				Value(&password).
+				Placeholder(password).
 				Inline(true),
 			huh.NewConfirm().Affirmative("Save").Negative("Discard").Inline(true),
 		).Title(title),

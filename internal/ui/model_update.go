@@ -95,7 +95,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		if m.form.State == huh.StateCompleted && m.form.GetBool(forms.FormConfirmed) {
 			if hostKeyErr, ok := errors.AsType[*hostKeyRequiredError](m.error); ok {
-				err := utils.AddHostKey(hostKeyErr.hostname, hostKeyErr.key)
+				err := utils.AddHostKey(hostKeyErr.path, hostKeyErr.hostname, hostKeyErr.key)
 				if err != nil {
 					return m, errCmd(err)
 				}

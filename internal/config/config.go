@@ -16,19 +16,21 @@ const (
 )
 
 type Defaults struct {
-	Username     string   `json:"username,omitempty"`
-	Port         string   `json:"port"`
-	AuthType     AuthType `json:"auth_type"`
-	IdentityFile string   `json:"identity_file"`
+	Username       string   `json:"username,omitempty"`
+	Port           string   `json:"port"`
+	AuthType       AuthType `json:"auth_type"`
+	IdentityFile   string   `json:"identity_file"`
+	KnownHostsFile string   `json:"known_hosts_file"`
 }
 
 type Server struct {
-	Address       string   `json:"address"`
-	Username      string   `json:"username,omitempty"`
-	Port          string   `json:"port,omitempty"`
-	AuthType      AuthType `json:"auth_type,omitempty"`
-	IdentityFile  string   `json:"identity_file,omitempty"`
-	HasPassphrase bool     `json:"has_passphrase,omitempty"`
+	Address        string   `json:"address"`
+	Username       string   `json:"username,omitempty"`
+	Port           string   `json:"port,omitempty"`
+	AuthType       AuthType `json:"auth_type,omitempty"`
+	IdentityFile   string   `json:"identity_file,omitempty"`
+	HasPassphrase  bool     `json:"has_passphrase,omitempty"`
+	KnownHostsFile string   `json:"known_hosts_file,omitempty"`
 }
 
 type Config struct {
@@ -132,11 +134,13 @@ func (c *Config) defaults(s *Server, strip bool) {
 		stripDefaults(&s.Port, c.data.Defaults.Port)
 		stripDefaults(&s.AuthType, c.data.Defaults.AuthType)
 		stripDefaults(&s.IdentityFile, c.data.Defaults.IdentityFile)
+		stripDefaults(&s.KnownHostsFile, c.data.Defaults.KnownHostsFile)
 	} else {
 		applyDefaults(&s.Username, c.data.Defaults.Username)
 		applyDefaults(&s.Port, c.data.Defaults.Port)
 		applyDefaults(&s.AuthType, c.data.Defaults.AuthType)
 		applyDefaults(&s.IdentityFile, c.data.Defaults.IdentityFile)
+		applyDefaults(&s.KnownHostsFile, c.data.Defaults.KnownHostsFile)
 	}
 }
 
@@ -144,4 +148,5 @@ func (c *Config) ensureBaseDefaults() {
 	applyDefaults(&c.data.Defaults.Port, "22")
 	applyDefaults(&c.data.Defaults.AuthType, AuthKey)
 	applyDefaults(&c.data.Defaults.IdentityFile, "~/.ssh/id_rsa")
+	applyDefaults(&c.data.Defaults.KnownHostsFile, "~/.ssh/known_hosts")
 }

@@ -38,8 +38,8 @@ func GetAuthMethod(keyPath string, password string) ssh.AuthMethod {
 	return ssh.PublicKeys(signer)
 }
 
-func GetKnownHosts() ssh.HostKeyCallback {
-	path := ExpandPath("~/.ssh/known_hosts")
+func GetKnownHosts(path string) ssh.HostKeyCallback {
+	path = ExpandPath(path)
 
 	f, err := os.OpenFile(path, os.O_RDONLY|os.O_CREATE, sshKnownHostsPerm)
 	if err != nil {
@@ -55,8 +55,8 @@ func GetKnownHosts() ssh.HostKeyCallback {
 	return callback
 }
 
-func AddHostKey(hostname string, key ssh.PublicKey) error {
-	f, err := os.OpenFile(ExpandPath("~/.ssh/known_hosts"), os.O_APPEND|os.O_CREATE|os.O_WRONLY, sshKnownHostsPerm)
+func AddHostKey(path, hostname string, key ssh.PublicKey) error {
+	f, err := os.OpenFile(ExpandPath(path), os.O_APPEND|os.O_CREATE|os.O_WRONLY, sshKnownHostsPerm)
 	if err != nil {
 		return err
 	}
