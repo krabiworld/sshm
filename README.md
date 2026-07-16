@@ -4,14 +4,14 @@ Blazingly fast SSH manager written on [Bubble Tea](https://github.com/charmbrace
 
 ## Installation
 
-macOS/Linux:
+### macOS/Linux:
 ```sh
 curl -Lo sshm "https://github.com/krabiworld/sshm/releases/latest/download/sshm-$(uname -s | tr A-Z a-z)-$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')" && chmod +x sshm
 ```
 
-Windows:
+### Windows:
 ```powershell
-iwr "https://github.com/krabiworld/sshm/releases/latest/download/sshm-windows-$($env:PROCESSOR_ARCHITECTURE.ToLower())" -OutFile sshm.exe
+iwr "https://github.com/krabiworld/sshm/releases/latest/download/sshm-windows-$($env:PROCESSOR_ARCHITECTURE.ToLower()).exe" -OutFile sshm.exe
 ```
 
 ## Building from source
