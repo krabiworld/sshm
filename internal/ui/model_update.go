@@ -72,7 +72,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if f, ok := form.(*huh.Form); ok {
 			m.form = f
 		}
-		if m.form.State == huh.StateCompleted && m.form.GetBool(forms.FormConfirmed) {
+		if m.form.State == huh.StateCompleted && m.form.GetBool(forms.Confirmed) {
 			serverName := m.getCurrentServer()
 			if err := m.config.Delete(serverName); err != nil {
 				return m, errCmd(err)
@@ -93,7 +93,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if f, ok := form.(*huh.Form); ok {
 			m.form = f
 		}
-		if m.form.State == huh.StateCompleted && m.form.GetBool(forms.FormConfirmed) {
+		if m.form.State == huh.StateCompleted && m.form.GetBool(forms.Confirmed) {
 			if hostKeyErr, ok := errors.AsType[*hostKeyRequiredError](m.error); ok {
 				err := utils.AddHostKey(hostKeyErr.path, hostKeyErr.hostname, hostKeyErr.key)
 				if err != nil {

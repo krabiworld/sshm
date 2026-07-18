@@ -8,8 +8,6 @@ import (
 	"github.com/mattn/go-runewidth"
 )
 
-const FormConfirmed = "form_confirmed"
-
 func NewConfirm(title string) *huh.Form {
 	firstLine := title
 	if before, _, ok := strings.Cut(title, "\n"); ok {
@@ -21,7 +19,7 @@ func NewConfirm(title string) *huh.Form {
 	return huh.NewForm(
 		huh.NewGroup(
 			huh.NewConfirm().
-				Key(FormConfirmed).
+				Key(Confirmed).
 				Title(title).
 				WithButtonAlignment(lipgloss.Left),
 		),
