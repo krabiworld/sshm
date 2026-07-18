@@ -50,7 +50,11 @@ func NewSettings(cfg *config.Config) *huh.Form {
 				Value(&knownHostsFile).
 				Inline(true).
 				Validate(validateIsNotEmpty("Known hosts file")),
-			huh.NewConfirm().Affirmative("Save").Negative("Discard").Inline(true),
+			huh.NewConfirm().
+				Key(Confirmed).
+				Affirmative("Save").
+				Negative("Discard").
+				Inline(true),
 		).Title("Settings"),
 	).WithWidth(80).WithTheme(FormTheme{})
 }

@@ -1,6 +1,8 @@
 package forms
 
 import (
+	"fmt"
+
 	"charm.land/huh/v2"
 	"github.com/krabiworld/sshm/internal/config"
 )
@@ -42,7 +44,15 @@ func NewServer(cfg *config.Config, currentName string) *huh.Form {
 				Title("Name").
 				Value(&name).
 				Inline(true).
-				Validate(validateIsNotEmpty("Name")),
+				Validate(func(s string) error {
+					if err := validateIsNotEmpty("Name")(s); err != nil {
+						return err
+					}
+					if server := cfg.GetRaw(s); server != (config.Server{}) && currentName != s {
+						return fmt.Errorf("A server named %s already exists.", s)
+					}
+					return nil
+				}),
 			huh.NewInput().
 				Key(ServerAddress).
 				Title("Address").
@@ -90,7 +100,11 @@ func NewServer(cfg *config.Config, currentName string) *huh.Form {
 				EchoMode(huh.EchoModePassword).
 				Placeholder(password).
 				Inline(true),
-			huh.NewConfirm().Affirmative("Save").Negative("Discard").Inline(true),
+			huh.NewConfirm().
+				Key(Confirmed).
+				Affirmative("Save").
+				Negative("Discard").
+				Inline(true),
 		).Title(title),
 	).WithWidth(80).WithTheme(FormTheme{})
 }

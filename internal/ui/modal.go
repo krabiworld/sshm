@@ -16,7 +16,7 @@ func (m model) updateServer(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.form = f
 	}
 
-	if m.form.State == huh.StateCompleted {
+	if m.form.State == huh.StateCompleted && m.form.GetBool(forms.Confirmed) {
 		formName := m.form.GetString(forms.ServerName)
 		formAddress := m.form.GetString(forms.ServerAddress)
 		formUsername := m.form.GetString(forms.ServerUsername)
@@ -73,7 +73,7 @@ func (m model) updateSettings(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.form = f
 	}
 
-	if m.form.State == huh.StateCompleted {
+	if m.form.State == huh.StateCompleted && m.form.GetBool(forms.Confirmed) {
 		formUsername := m.form.GetString(forms.ServerUsername)
 		formPort := m.form.GetString(forms.ServerPort)
 		formAuthType := m.form.Get(forms.ServerAuthType).(config.AuthType)
