@@ -1,0 +1,32 @@
+version: 2
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - main: ./cmd/sshm
+
+archives:
+  - formats: [tar.gz]
+    name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}"
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    files: []
+
+sboms:
+  - documents:
+      - "{{ .Binary }}_{{ .Os }}_{{ .Arch }}.sbom.cyclonedx.json"
+    args: ["$artifact", "--output", "cyclonedx-json=$document"]
+
+homebrew_casks:
+  - homepage: "https://github.com/krabiworld/sshm"
+    repository:
+      owner: krabiworld
+      name: homebrew-tap
+      branch: main
+      token: "{{ .Env.TAP_TOKEN }}"
+    commit_author:
+      name: krabiworld
+      email: krabiworld1@gmail.com

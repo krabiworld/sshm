@@ -1,0 +1,73 @@
+name: Build and release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+
+      - name: Setup Syft
+        uses: anchore/sbom-action/download-syft@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
+
+      - name: Build and release
+        id: goreleaser
+        uses: goreleaser/goreleaser-action@f06c13b6b1a9625abc9e6e439d9c05a8f2190e94 # v7
+        with:
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAP_TOKEN: ${{ secrets.TAP_TOKEN }}
+
+      - name: Generate matrix
+        id: set-matrix
+        run: |
+          RAW_JSON='${{ steps.goreleaser.outputs.artifacts }}'
+          MATRIX=$(echo "$RAW_JSON" | jq -c '[ .[] | select(.type == "Archive") | .path | sub("^dist/"; "") | { archive: ., sbom: sub("(\\.tar\\.gz|\\.zip)$"; ".sbom.cyclonedx.json") } ]')
+          echo "matrix=${MATRIX}" >> $GITHUB_OUTPUT
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          path: dist/
+
+  attest:
+    needs: release
+
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+      attestations: write
+
+    strategy:
+      matrix:
+        include: ${{ fromJson(needs.release.outputs.matrix) }}
+
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v8
+
+      - name: Generate artifact attestation
+        uses: actions/attest@v4
+        with:
+          subject-path: ${{ matrix.archive }}
+          sbom-path: ${{ matrix.sbom }}
