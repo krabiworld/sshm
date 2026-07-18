@@ -1,17 +1,15 @@
 # sshm
 
-Blazingly fast SSH manager written on [Bubble Tea](https://github.com/charmbracelet/bubbletea)
+Blazingly fast SSH manager written on [Bubble Tea](https://github.com/charmbracelet/bubbletea).
 
 ## Installation
 
-### macOS/Linux:
-```sh
-curl -Lo sshm "https://github.com/krabiworld/sshm/releases/latest/download/sshm-$(uname -s | tr A-Z a-z)-$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')" && chmod +x sshm
-```
+You can download the binary from the [GitHub Releases](https://github.com/krabiworld/sshm/releases).
 
-### Windows:
-```powershell
-iwr "https://github.com/krabiworld/sshm/releases/latest/download/sshm-windows-$($env:PROCESSOR_ARCHITECTURE.ToLower()).exe" -OutFile sshm.exe
+### Homebrew (macOS/Linux)
+
+```sh
+brew install --cask krabiworld/tap/sshm
 ```
 
 ## Building from source
