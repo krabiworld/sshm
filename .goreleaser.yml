@@ -13,7 +13,8 @@ archives:
     format_overrides:
       - goos: windows
         formats: [zip]
-    files: []
+    files:
+      - none*
 
 sboms:
   - documents:
