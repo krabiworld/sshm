@@ -112,12 +112,12 @@ func (c *Config) SetDefaults(def Defaults) error {
 }
 
 func (c *Config) write() error {
-	if err := utils.CreateSshDir(); err != nil {
+	bytes, err := json.MarshalIndent(c.data, "", "\t")
+	if err != nil {
 		return err
 	}
 
-	bytes, err := json.MarshalIndent(c.data, "", "\t")
-	if err != nil {
+	if err := utils.CreateSshDir(); err != nil {
 		return err
 	}
 

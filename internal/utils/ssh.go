@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net"
 	"os"
-	"path/filepath"
 	"runtime"
 
 	"golang.org/x/crypto/ssh"
@@ -67,7 +66,7 @@ func AddHostKey(path, hostname string, key ssh.PublicKey) error {
 }
 
 func CreateSshDir() error {
-	return os.MkdirAll(filepath.Dir(ExpandPath("~/.ssh")), sshDirPerm)
+	return os.MkdirAll(ExpandPath("~/.ssh"), sshDirPerm)
 }
 
 func GetAgentDial() (net.Conn, error) {
