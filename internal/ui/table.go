@@ -67,7 +67,13 @@ func (m *model) updateTable() {
 		})
 	}
 
+	wasEmpty := len(m.table.Rows()) == 0
+
 	m.table.SetRows(rows)
+
+	if wasEmpty && len(rows) > 0 {
+		m.table.GotoTop()
+	}
 }
 
 func (m *model) recalculateTable() {
