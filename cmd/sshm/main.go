@@ -10,9 +10,21 @@ import (
 	"github.com/krabiworld/sshm/internal/utils"
 )
 
+var (
+	version = "unknown"
+	commit  = "unknown"
+	date    = "unknown"
+)
+
 func main() {
+	showVersion := flag.Bool("version", false, "")
 	configPath := flag.String("config", "~/.ssh/config.sshm.json", "")
 	flag.Parse()
+
+	if *showVersion {
+		fmt.Printf("Version: %s\nCommit: %s\nBuild Date: %s\n", version, commit, date)
+		return
+	}
 
 	cfg, err := config.New(utils.ExpandPath(*configPath))
 	if err != nil {
