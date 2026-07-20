@@ -77,9 +77,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if err := m.config.Delete(serverName); err != nil {
 				return m, errCmd(err)
 			}
-			if err := security.DeletePassword(serverName); err != nil {
-				return m, errCmd(err)
-			}
+			_ = security.DeletePassword(serverName)
 			m.updateTable()
 		}
 		if m.form.State == huh.StateCompleted || m.form.State == huh.StateAborted {
