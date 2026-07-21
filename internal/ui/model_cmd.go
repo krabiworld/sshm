@@ -109,21 +109,23 @@ func (m model) dialSsh(name string) tea.Cmd {
 
 		switch server.AuthType {
 		case config.AuthPassword:
-			pw, err := m.storage.GetPassword(name)
+			pw, err := m.crypto.Decrypt(server.Password)
 			if err != nil {
 				return errMsg{fmt.Errorf("Password retrieval error: %w", err)}
 			}
+
 			auth = ssh.Password(pw)
 		case config.AuthKey:
-			var passphrase string
-			if server.HasPassphrase {
-				p, err := m.storage.GetPassword(name)
+			var password string
+			if len(server.Password) > 0 {
+				p, err := m.crypto.Decrypt(server.Password)
 				if err != nil {
 					return errMsg{fmt.Errorf("Passphrase retrieval error: %w", err)}
 				}
-				passphrase = p
+				password = p
 			}
-			auth = utils.GetAuthMethod(server.IdentityFile, passphrase)
+
+			auth = utils.GetAuthMethod(server.IdentityFile, password)
 		case config.AuthAgent:
 			agentDial, err := utils.GetAgentDial()
 			if err != nil {

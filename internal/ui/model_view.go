@@ -3,9 +3,22 @@ package ui
 import (
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
+	"github.com/krabiworld/sshm/internal/crypto"
 )
 
 func (m model) View() tea.View {
+	if m.crypto == (crypto.Cipher{}) {
+		view := tea.NewView(lipgloss.Place(
+			m.totalWidth,
+			m.totalHeight,
+			lipgloss.Center,
+			lipgloss.Center,
+			m.form.View(),
+		))
+		view.AltScreen = true
+		return view
+	}
+
 	footer := paddingStyle.Render("^F Search | ^A Add | ^M Modify | ^D Delete | ^I Copy ID | ^X Settings")
 
 	if m.activeModal == modalSearch {

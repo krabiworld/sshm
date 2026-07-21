@@ -8,19 +8,48 @@ import (
 	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/huh/v2"
+	"github.com/krabiworld/sshm/internal/crypto"
 	"github.com/krabiworld/sshm/internal/ui/forms"
 	"github.com/krabiworld/sshm/internal/utils"
+	"github.com/zalando/go-keyring"
 	"golang.org/x/crypto/ssh"
 )
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	// Global
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.totalWidth = msg.Width
 		m.totalHeight = msg.Height
 
 		m.recalculateTable()
+	case tea.KeyPressMsg:
+		switch msg.String() {
+		case "ctrl+c":
+			return m, tea.Quit
+		}
+	}
+
+	if m.crypto == (crypto.Cipher{}) {
+		form, cmd := m.form.Update(msg)
+		if f, ok := form.(*huh.Form); ok {
+			m.form = f
+		}
+		if m.form.State == huh.StateCompleted {
+			masterPassword := m.form.GetString(forms.MasterPassword)
+			m.crypto = crypto.NewCipher(masterPassword)
+
+			if m.form.GetBool(forms.Confirmed) {
+				err := keyring.Set(keyringService, keyringUsername, masterPassword)
+				if err != nil {
+					panic(err)
+				}
+			}
+		}
+		return m, cmd
+	}
+
+	// Global
+	switch msg := msg.(type) {
 	case spinner.TickMsg:
 		var cmd tea.Cmd
 		m.spinner, cmd = m.spinner.Update(msg)
@@ -44,8 +73,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case tea.KeyPressMsg:
 		switch msg.String() {
-		case "ctrl+c":
-			return m, tea.Quit
 		case "esc":
 			if m.activeModal == modalConnecting {
 				return m, nil
@@ -65,18 +92,16 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case modalSearch:
 		return m.updateSearch(msg)
 	case modalCreate, modalModify:
-		return m.updateServer(msg)
+		return m.wrapModal(msg, m.updateServer)
 	case modalDelete:
 		form, cmd := m.form.Update(msg)
 		if f, ok := form.(*huh.Form); ok {
 			m.form = f
 		}
 		if m.form.State == huh.StateCompleted && m.form.GetBool(forms.Confirmed) {
-			serverName := m.getCurrentServer()
-			if err := m.config.Delete(serverName); err != nil {
+			if err := m.config.Delete(m.getCurrentServer()); err != nil {
 				return m, errCmd(err)
 			}
-			_ = m.storage.DeletePassword(serverName)
 			m.updateTable()
 		}
 		if m.form.State == huh.StateCompleted || m.form.State == huh.StateAborted {
@@ -84,7 +109,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		return m, cmd
 	case modalSettings:
-		return m.updateSettings(msg)
+		return m.wrapModal(msg, m.updateSettings)
 	case modalHostKeyRequired:
 		form, cmd := m.form.Update(msg)
 		if f, ok := form.(*huh.Form); ok {

@@ -13,7 +13,6 @@ func NewSettings(cfg *config.Config) *huh.Form {
 		authType       = cfg.GetDefaults().AuthType
 		identityFile   = cfg.GetDefaults().IdentityFile
 		knownHostsFile = cfg.GetDefaults().KnownHostsFile
-		storageType    = cfg.GetDefaults().PasswordStorageType
 	)
 	return huh.NewForm(
 		huh.NewGroup(
@@ -51,16 +50,6 @@ func NewSettings(cfg *config.Config) *huh.Form {
 				Value(&knownHostsFile).
 				Inline(true).
 				Validate(validateIsNotEmpty("Known hosts file")),
-			huh.NewSelect[config.StorageType]().
-				Key(ServerStorageType).
-				Title("Password storage type").
-				Options(
-					huh.NewOption("Keychain", config.StorageKeychain),
-					huh.NewOption("Encrypted", config.StorageEcnrypted),
-					huh.NewOption("Plaintext", config.StoragePlaintext),
-				).
-				Value(&storageType).
-				Inline(true),
 			huh.NewConfirm().
 				Key(Confirmed).
 				Affirmative("Save").

@@ -1,6 +1,8 @@
 package forms
 
 const (
+	MasterPassword = "master_password"
+
 	ServerName           = "name"
 	ServerAddress        = "address"
 	ServerUsername       = "username"
@@ -9,7 +11,6 @@ const (
 	ServerIdentityFile   = "identity_file"
 	ServerKnownHostsFile = "known_hosts_file"
 	ServerPassword       = "password"
-	ServerStorageType    = "password_storage_type"
 
 	Confirmed = "confirmed"
 )

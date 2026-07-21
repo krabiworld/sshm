@@ -18,7 +18,6 @@ func NewServer(cfg *config.Config, currentName string) *huh.Form {
 		identity       string
 		knownHostsFile string
 		password       string
-		storageType    = cfg.GetDefaults().PasswordStorageType
 	)
 
 	currentServer := cfg.GetRaw(currentName)
@@ -33,10 +32,9 @@ func NewServer(cfg *config.Config, currentName string) *huh.Form {
 		}
 		identity = currentServer.IdentityFile
 		knownHostsFile = currentServer.KnownHostsFile
-		if currentServer.HasPassphrase || currentServer.AuthType == config.AuthPassword || cfg.GetDefaults().AuthType == config.AuthPassword {
+		if len(currentServer.Password) > 0 {
 			password = "********"
 		}
-		storageType = currentServer.PasswordStorageType
 	}
 
 	return huh.NewForm(
@@ -101,16 +99,6 @@ func NewServer(cfg *config.Config, currentName string) *huh.Form {
 				Title("Password").
 				EchoMode(huh.EchoModePassword).
 				Placeholder(password).
-				Inline(true),
-			huh.NewSelect[config.StorageType]().
-				Key(ServerStorageType).
-				Title("Password storage type").
-				Options(
-					huh.NewOption("Keychain", config.StorageKeychain),
-					huh.NewOption("Encrypted", config.StorageEcnrypted),
-					huh.NewOption("Plaintext", config.StoragePlaintext),
-				).
-				Value(&storageType).
 				Inline(true),
 			huh.NewConfirm().
 				Key(Confirmed).
