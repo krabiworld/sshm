@@ -13,6 +13,7 @@ func NewSettings(cfg *config.Config) *huh.Form {
 		authType       = cfg.GetDefaults().AuthType
 		identityFile   = cfg.GetDefaults().IdentityFile
 		knownHostsFile = cfg.GetDefaults().KnownHostsFile
+		storageType    = cfg.GetDefaults().PasswordStorageType
 	)
 	return huh.NewForm(
 		huh.NewGroup(
@@ -32,9 +33,9 @@ func NewSettings(cfg *config.Config) *huh.Form {
 				Key(ServerAuthType).
 				Title("Auth type").
 				Options(
-					huh.NewOption("key", config.AuthKey),
-					huh.NewOption("password", config.AuthPassword),
-					huh.NewOption("agent", config.AuthAgent),
+					huh.NewOption("Key", config.AuthKey),
+					huh.NewOption("Password", config.AuthPassword),
+					huh.NewOption("Agent", config.AuthAgent),
 				).
 				Value(&authType).
 				Inline(true),
@@ -50,6 +51,16 @@ func NewSettings(cfg *config.Config) *huh.Form {
 				Value(&knownHostsFile).
 				Inline(true).
 				Validate(validateIsNotEmpty("Known hosts file")),
+			huh.NewSelect[config.StorageType]().
+				Key(ServerStorageType).
+				Title("Password storage type").
+				Options(
+					huh.NewOption("Keychain", config.StorageKeychain),
+					huh.NewOption("Encrypted", config.StorageEcnrypted),
+					huh.NewOption("Plaintext", config.StoragePlaintext),
+				).
+				Value(&storageType).
+				Inline(true),
 			huh.NewConfirm().
 				Key(Confirmed).
 				Affirmative("Save").

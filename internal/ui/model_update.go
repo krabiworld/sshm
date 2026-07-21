@@ -8,7 +8,6 @@ import (
 	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/huh/v2"
-	"github.com/krabiworld/sshm/internal/security"
 	"github.com/krabiworld/sshm/internal/ui/forms"
 	"github.com/krabiworld/sshm/internal/utils"
 	"golang.org/x/crypto/ssh"
@@ -77,7 +76,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if err := m.config.Delete(serverName); err != nil {
 				return m, errCmd(err)
 			}
-			_ = security.DeletePassword(serverName)
+			_ = m.storage.DeletePassword(serverName)
 			m.updateTable()
 		}
 		if m.form.State == huh.StateCompleted || m.form.State == huh.StateAborted {

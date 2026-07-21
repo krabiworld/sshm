@@ -18,11 +18,17 @@ var (
 
 func main() {
 	showVersion := flag.Bool("version", false, "")
+	showDebug := flag.Bool("debug", false, "")
 	configPath := flag.String("config", "~/.ssh/config.sshm.json", "")
 	flag.Parse()
 
 	if *showVersion {
 		fmt.Printf("Version: %s\nCommit: %s\nBuild Date: %s\n", version, commit, date)
+		return
+	}
+
+	if *showDebug {
+		printDebug()
 		return
 	}
 

@@ -6,7 +6,6 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"charm.land/huh/v2"
 	"github.com/krabiworld/sshm/internal/config"
-	"github.com/krabiworld/sshm/internal/security"
 	"github.com/krabiworld/sshm/internal/ui/forms"
 )
 
@@ -25,18 +24,20 @@ func (m model) updateServer(msg tea.Msg) (tea.Model, tea.Cmd) {
 		formIdentityFile := m.form.GetString(forms.ServerIdentityFile)
 		formKnownHostsFile := m.form.GetString(forms.ServerKnownHostsFile)
 		formPassword := m.form.GetString(forms.ServerPassword)
+		formStorageType := m.form.Get(forms.ServerStorageType).(config.StorageType)
 
 		password := strings.TrimSpace(formPassword)
 		hasPassword := password != ""
 
 		server := config.Server{
-			Address:        formAddress,
-			Username:       formUsername,
-			Port:           formPort,
-			AuthType:       formAuthType,
-			IdentityFile:   formIdentityFile,
-			KnownHostsFile: formKnownHostsFile,
-			HasPassphrase:  hasPassword,
+			Address:             formAddress,
+			Username:            formUsername,
+			Port:                formPort,
+			AuthType:            formAuthType,
+			IdentityFile:        formIdentityFile,
+			KnownHostsFile:      formKnownHostsFile,
+			HasPassphrase:       hasPassword,
+			PasswordStorageType: formStorageType,
 		}
 
 		if m.activeModal == modalModify {
@@ -51,7 +52,7 @@ func (m model) updateServer(msg tea.Msg) (tea.Model, tea.Cmd) {
 			panic(err)
 		}
 		if hasPassword {
-			err := security.SetPassword(formName, password)
+			err := m.storage.SetPassword(formName, password)
 			if err != nil {
 				panic(err)
 			}
@@ -79,6 +80,7 @@ func (m model) updateSettings(msg tea.Msg) (tea.Model, tea.Cmd) {
 		formAuthType := m.form.Get(forms.ServerAuthType).(config.AuthType)
 		formIdentityFile := m.form.GetString(forms.ServerIdentityFile)
 		formKnownHostsFile := m.form.GetString(forms.ServerKnownHostsFile)
+		formStorageType := m.form.Get(forms.ServerStorageType).(config.StorageType)
 
 		if m.activeModal == modalModify {
 			currentName := m.table.SelectedRow()[0]
@@ -93,6 +95,7 @@ func (m model) updateSettings(msg tea.Msg) (tea.Model, tea.Cmd) {
 		defaults.AuthType = formAuthType
 		defaults.IdentityFile = formIdentityFile
 		defaults.KnownHostsFile = formKnownHostsFile
+		defaults.PasswordStorageType = formStorageType
 
 		if err := m.config.SetDefaults(defaults); err != nil {
 			panic(err)

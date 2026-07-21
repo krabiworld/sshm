@@ -7,30 +7,40 @@ import (
 	"github.com/krabiworld/sshm/internal/utils"
 )
 
-type AuthType string
+type (
+	AuthType    string
+	StorageType string
+)
 
 const (
 	AuthKey      AuthType = "key"
 	AuthPassword AuthType = "password"
 	AuthAgent    AuthType = "agent"
+
+	StorageKeychain        StorageType = "keychain"
+	StoragePlaintext          StorageType = "config"
+	StorageEcnrypted StorageType = "config_encrypted"
 )
 
 type Defaults struct {
-	Username       string   `json:"username,omitempty"`
-	Port           string   `json:"port"`
-	AuthType       AuthType `json:"auth_type"`
-	IdentityFile   string   `json:"identity_file"`
-	KnownHostsFile string   `json:"known_hosts_file"`
+	Username            string      `json:"username,omitempty"`
+	Port                string      `json:"port"`
+	AuthType            AuthType    `json:"auth_type"`
+	IdentityFile        string      `json:"identity_file"`
+	KnownHostsFile      string      `json:"known_hosts_file"`
+	PasswordStorageType StorageType `json:"password_storage_type"`
 }
 
 type Server struct {
-	Address        string   `json:"address"`
-	Username       string   `json:"username,omitempty"`
-	Port           string   `json:"port,omitempty"`
-	AuthType       AuthType `json:"auth_type,omitempty"`
-	IdentityFile   string   `json:"identity_file,omitempty"`
-	HasPassphrase  bool     `json:"has_passphrase,omitempty"`
-	KnownHostsFile string   `json:"known_hosts_file,omitempty"`
+	Address             string      `json:"address"`
+	Username            string      `json:"username,omitempty"`
+	Port                string      `json:"port,omitempty"`
+	AuthType            AuthType    `json:"auth_type,omitempty"`
+	IdentityFile        string      `json:"identity_file,omitempty"`
+	HasPassphrase       bool        `json:"has_passphrase,omitempty"`
+	KnownHostsFile      string      `json:"known_hosts_file,omitempty"`
+	PasswordStorageType StorageType `json:"password_storage_type,omitempty"`
+	Password            string      `json:"password,omitempty"`
 }
 
 type Config struct {
@@ -135,12 +145,14 @@ func (c *Config) defaults(s *Server, strip bool) {
 		stripDefaults(&s.AuthType, c.data.Defaults.AuthType)
 		stripDefaults(&s.IdentityFile, c.data.Defaults.IdentityFile)
 		stripDefaults(&s.KnownHostsFile, c.data.Defaults.KnownHostsFile)
+		stripDefaults(&s.PasswordStorageType, c.data.Defaults.PasswordStorageType)
 	} else {
 		applyDefaults(&s.Username, c.data.Defaults.Username)
 		applyDefaults(&s.Port, c.data.Defaults.Port)
 		applyDefaults(&s.AuthType, c.data.Defaults.AuthType)
 		applyDefaults(&s.IdentityFile, c.data.Defaults.IdentityFile)
 		applyDefaults(&s.KnownHostsFile, c.data.Defaults.KnownHostsFile)
+		applyDefaults(&s.PasswordStorageType, c.data.Defaults.PasswordStorageType)
 	}
 }
 
@@ -149,4 +161,5 @@ func (c *Config) ensureBaseDefaults() {
 	applyDefaults(&c.data.Defaults.AuthType, AuthKey)
 	applyDefaults(&c.data.Defaults.IdentityFile, "~/.ssh/id_rsa")
 	applyDefaults(&c.data.Defaults.KnownHostsFile, "~/.ssh/known_hosts")
+	applyDefaults(&c.data.Defaults.PasswordStorageType, StorageKeychain)
 }

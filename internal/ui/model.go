@@ -6,6 +6,7 @@ import (
 	"charm.land/bubbles/v2/textinput"
 	"charm.land/huh/v2"
 	"github.com/krabiworld/sshm/internal/config"
+	"github.com/krabiworld/sshm/internal/storage"
 )
 
 type modalType int
@@ -31,15 +32,16 @@ var columns = []table.Column{
 }
 
 type model struct {
-	config             *config.Config
-	table              table.Model
-	searchInput        textinput.Model
-	form               *huh.Form
-	spinner            spinner.Model
-	activeModal        modalType
-	totalWidth         int
-	totalHeight        int
-	error              error
+	config      *config.Config
+	table       table.Model
+	searchInput textinput.Model
+	form        *huh.Form
+	spinner     spinner.Model
+	storage     storage.Storage
+	activeModal modalType
+	totalWidth  int
+	totalHeight int
+	error       error
 }
 
 func NewModel(cfg *config.Config) model {
@@ -51,6 +53,7 @@ func NewModel(cfg *config.Config) model {
 		),
 		searchInput: textinput.New(),
 		spinner:     spinner.New(),
+		storage:    storage.NewStorage(cfg),
 	}
 
 	m.spinner.Spinner = spinner.Dot

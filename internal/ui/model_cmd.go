@@ -11,7 +11,6 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/x/term"
 	"github.com/krabiworld/sshm/internal/config"
-	"github.com/krabiworld/sshm/internal/security"
 	"github.com/krabiworld/sshm/internal/utils"
 	"github.com/muesli/cancelreader"
 	"golang.org/x/crypto/ssh"
@@ -110,7 +109,7 @@ func (m model) dialSsh(name string) tea.Cmd {
 
 		switch server.AuthType {
 		case config.AuthPassword:
-			pw, err := security.GetPassword(name)
+			pw, err := m.storage.GetPassword(name)
 			if err != nil {
 				return errMsg{fmt.Errorf("Password retrieval error: %w", err)}
 			}
@@ -118,7 +117,7 @@ func (m model) dialSsh(name string) tea.Cmd {
 		case config.AuthKey:
 			var passphrase string
 			if server.HasPassphrase {
-				p, err := security.GetPassword(name)
+				p, err := m.storage.GetPassword(name)
 				if err != nil {
 					return errMsg{fmt.Errorf("Passphrase retrieval error: %w", err)}
 				}
