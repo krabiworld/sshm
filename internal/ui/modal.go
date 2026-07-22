@@ -56,8 +56,13 @@ func (m *model) updateServer() {
 
 	if m.activeModal == modalModify {
 		currentName := m.table.SelectedRow()[0]
-		if currentName != forms.ServerName {
+		if currentName != formName {
 			m.config.Delete(currentName)
+		}
+
+		currentPassword := m.config.GetRaw(currentName).Password
+		if password == "" && currentPassword != "" {
+			server.Password = currentPassword
 		}
 	}
 
