@@ -65,14 +65,15 @@ func (s Cipher) Decrypt(password string) (string, error) {
 	}
 
 	salt := encryptedBytes[:saltLen]
-	nonceSize := 12
-	nonce := encryptedBytes[saltLen : saltLen+nonceSize]
-	ciphertext := encryptedBytes[saltLen+nonceSize:]
 
 	gcm, err := getGCM(s.masterPassword, salt)
 	if err != nil {
 		return "", err
 	}
+
+	nonceSize := gcm.NonceSize()
+	nonce := encryptedBytes[saltLen : saltLen+nonceSize]
+	ciphertext := encryptedBytes[saltLen+nonceSize:]
 
 	plaintext, err := gcm.Open(nil, nonce, ciphertext, nil)
 	if err != nil {
