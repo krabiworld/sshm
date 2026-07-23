@@ -5,33 +5,29 @@ import (
 
 	"charm.land/huh/v2"
 	"github.com/krabiworld/sshm/internal/config"
+	"github.com/krabiworld/sshm/internal/utils"
 )
 
 func NewServer(cfg *config.Config, currentName string) *huh.Form {
 	var (
-		title          = "Add new server"
-		name           = currentName
-		address        string
-		username       string
-		port           string
-		authType       = cfg.GetDefaults().AuthType
-		identity       string
-		knownHostsFile string
-		password       string
+		title    = "Add new server"
+		name     = currentName
+		address  string
+		username = utils.GetCurrentUsername()
+		port     = "22"
+		authType = config.AuthKey
+		identity = "~/.ssh/id_rsa"
+		password string
 	)
 
-	currentServer := cfg.GetRaw(currentName)
+	currentServer := cfg.Get(currentName)
 	if currentServer != (config.Server{}) {
 		title = "Modify server"
 		address = currentServer.Address
 		username = currentServer.Username
 		port = currentServer.Port
 		authType = currentServer.AuthType
-		if authType == "" {
-			authType = cfg.GetDefaults().AuthType
-		}
 		identity = currentServer.IdentityFile
-		knownHostsFile = currentServer.KnownHostsFile
 		if len(currentServer.Password) > 0 {
 			password = "********"
 		}
@@ -48,7 +44,7 @@ func NewServer(cfg *config.Config, currentName string) *huh.Form {
 					if err := validateIsNotEmpty("Name")(s); err != nil {
 						return err
 					}
-					if server := cfg.GetRaw(s); server != (config.Server{}) && currentName != s {
+					if server := cfg.Get(s); server != (config.Server{}) && currentName != s {
 						return fmt.Errorf("A server named %s already exists.", s)
 					}
 					return nil
@@ -62,13 +58,11 @@ func NewServer(cfg *config.Config, currentName string) *huh.Form {
 			huh.NewInput().
 				Key(ServerUsername).
 				Title("Username").
-				Placeholder(cfg.GetDefaults().Username).
 				Value(&username).
 				Inline(true),
 			huh.NewInput().
 				Key(ServerPort).
 				Title("Port").
-				Placeholder(cfg.GetDefaults().Port).
 				Value(&port).
 				Inline(true).
 				Validate(validatePort),
@@ -85,14 +79,7 @@ func NewServer(cfg *config.Config, currentName string) *huh.Form {
 			huh.NewInput().
 				Key(ServerIdentityFile).
 				Title("Identity file").
-				Placeholder(cfg.GetDefaults().IdentityFile).
 				Value(&identity).
-				Inline(true),
-			huh.NewInput().
-				Key(ServerKnownHostsFile).
-				Title("Known hosts file").
-				Placeholder(cfg.GetDefaults().KnownHostsFile).
-				Value(&knownHostsFile).
 				Inline(true),
 			huh.NewInput().
 				Key(ServerPassword).

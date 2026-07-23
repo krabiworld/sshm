@@ -11,10 +11,14 @@ import (
 )
 
 const (
-	sshDirPerm        os.FileMode = 0700
-	sshKnownHostsPerm os.FileMode = 0600
+	sshDir            = "~/.ssh"
+	sshKnownHostsFile = sshDir + "/known_hosts"
 
-	sshAgentEnv = "SSH_AUTH_SOCK"
+	sshDirPerm            os.FileMode = 0700
+	sshKnownHostsFilePerm os.FileMode = 0600
+
+	sshAgentEnv           = "SSH_AUTH_SOCK"
+	sshAgentSocketWindows = `\\.\pipe\openssh-ssh-agent`
 )
 
 func GetAuthMethod(keyPath string, password string) ssh.AuthMethod {
@@ -37,10 +41,10 @@ func GetAuthMethod(keyPath string, password string) ssh.AuthMethod {
 	return ssh.PublicKeys(signer)
 }
 
-func GetKnownHosts(path string) ssh.HostKeyCallback {
-	path = ExpandPath(path)
+func GetKnownHosts() ssh.HostKeyCallback {
+	path := ExpandPath(sshKnownHostsFile)
 
-	f, err := os.OpenFile(path, os.O_RDONLY|os.O_CREATE, sshKnownHostsPerm)
+	f, err := os.OpenFile(path, os.O_RDONLY|os.O_CREATE, sshKnownHostsFilePerm)
 	if err != nil {
 		panic(err)
 	}
@@ -54,8 +58,8 @@ func GetKnownHosts(path string) ssh.HostKeyCallback {
 	return callback
 }
 
-func AddHostKey(path, hostname string, key ssh.PublicKey) error {
-	f, err := os.OpenFile(ExpandPath(path), os.O_APPEND|os.O_CREATE|os.O_WRONLY, sshKnownHostsPerm)
+func AddHostKey(hostname string, key ssh.PublicKey) error {
+	f, err := os.OpenFile(ExpandPath(sshKnownHostsFile), os.O_APPEND|os.O_CREATE|os.O_WRONLY, sshKnownHostsFilePerm)
 	if err != nil {
 		return err
 	}
@@ -66,14 +70,14 @@ func AddHostKey(path, hostname string, key ssh.PublicKey) error {
 }
 
 func CreateSshDir() error {
-	return os.MkdirAll(ExpandPath("~/.ssh"), sshDirPerm)
+	return os.MkdirAll(ExpandPath(sshDir), sshDirPerm)
 }
 
 func GetAgentDial() (net.Conn, error) {
 	socket := os.Getenv(sshAgentEnv)
 
 	if socket == "" && runtime.GOOS == "windows" {
-		socket = `\\.\pipe\openssh-ssh-agent`
+		socket = sshAgentSocketWindows
 	}
 
 	if socket == "" {

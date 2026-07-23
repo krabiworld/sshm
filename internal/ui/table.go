@@ -6,7 +6,6 @@ import (
 
 	"charm.land/bubbles/v2/table"
 	"github.com/krabiworld/sshm/internal/config"
-	"github.com/krabiworld/sshm/internal/utils"
 )
 
 func (m *model) updateTable() {
@@ -30,39 +29,21 @@ func (m *model) updateTable() {
 			}
 		}
 
-		var username string
-		if server.Username == utils.GetCurrentUsername() && m.config.GetDefaults().Username == "" {
-			username = server.Username + " (c)"
-		} else {
-			username = m.appendDefaultTag(server.Username, m.config.GetDefaults().Username)
-		}
-
-		authType := server.AuthType
-		if authType == "" {
-			authType = m.config.GetDefaults().AuthType
-		}
-
 		var identity string
-		switch authType {
+		switch server.AuthType {
 		case config.AuthPassword:
 			identity = "Password"
-			if m.config.GetDefaults().AuthType == config.AuthPassword {
-				identity += " (d)"
-			}
 		case config.AuthKey:
-			identity = m.appendDefaultTag(server.IdentityFile, m.config.GetDefaults().IdentityFile)
+			identity = server.IdentityFile
 		case config.AuthAgent:
 			identity = "Agent"
-			if m.config.GetDefaults().AuthType == config.AuthAgent {
-				identity += " (d)"
-			}
 		}
 
 		rows = append(rows, table.Row{
 			name,
 			server.Address,
-			username,
-			m.appendDefaultTag(server.Port, m.config.GetDefaults().Port),
+			server.Username,
+			server.Port,
 			identity,
 		})
 	}
@@ -98,11 +79,4 @@ func (m model) calculateWidth() int {
 
 func (m model) calculateHeight() int {
 	return m.totalHeight - 1
-}
-
-func (m model) appendDefaultTag(val, def string) string {
-	if val == def {
-		return val + " (d)"
-	}
-	return val
 }

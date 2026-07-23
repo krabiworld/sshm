@@ -19,7 +19,6 @@ import (
 )
 
 type hostKeyRequiredError struct {
-	path     string
 	hostname string
 	key      ssh.PublicKey
 }
@@ -88,14 +87,14 @@ func (m model) dialSsh(name string) tea.Cmd {
 		clientConfig := &ssh.ClientConfig{
 			User: server.Username,
 			HostKeyCallback: func(hostname string, remote net.Addr, key ssh.PublicKey) error {
-				err := utils.GetKnownHosts(server.KnownHostsFile)(hostname, remote, key)
+				err := utils.GetKnownHosts()(hostname, remote, key)
 				if err == nil {
 					return nil
 				}
 
 				if keyErr, ok := errors.AsType[*knownhosts.KeyError](err); ok {
 					if len(keyErr.Want) == 0 {
-						return &hostKeyRequiredError{server.KnownHostsFile, hostname, key}
+						return &hostKeyRequiredError{hostname, key}
 					}
 
 					return errors.New("Warning: remote host identification has changed!")

@@ -19,7 +19,7 @@ func (m model) View() tea.View {
 		return view
 	}
 
-	footer := paddingStyle.Render("^F Search | ^A Add | ^M Modify | ^D Delete | ^I Copy ID | ^X Settings")
+	footer := paddingStyle.Render("^F Search | ^A Add | ^M Modify | ^D Delete | ^I Copy ID")
 
 	if m.activeModal == modalSearch {
 		footer = lipgloss.JoinHorizontal(lipgloss.Left, " Search", m.searchInput.View())

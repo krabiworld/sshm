@@ -19,7 +19,6 @@ const (
 	modalCreate
 	modalModify
 	modalDelete
-	modalSettings
 	modalConnecting
 	modalHostKeyRequired
 	modalError

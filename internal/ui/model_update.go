@@ -94,41 +94,28 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case modalCreate, modalModify:
 		return m.wrapModal(msg, m.updateServer)
 	case modalDelete:
-		form, cmd := m.form.Update(msg)
-		if f, ok := form.(*huh.Form); ok {
-			m.form = f
-		}
-		if m.form.State == huh.StateCompleted && m.form.GetBool(forms.Confirmed) {
+		return m.wrapModal(msg, func() tea.Cmd {
 			if err := m.config.Delete(m.getCurrentServer()); err != nil {
-				return m, errCmd(err)
+				return errCmd(err)
 			}
+
 			m.updateTable()
-		}
-		if m.form.State == huh.StateCompleted || m.form.State == huh.StateAborted {
-			m.activeModal = modalNone
-		}
-		return m, cmd
-	case modalSettings:
-		return m.wrapModal(msg, m.updateSettings)
+
+			return nil
+		})
 	case modalHostKeyRequired:
-		form, cmd := m.form.Update(msg)
-		if f, ok := form.(*huh.Form); ok {
-			m.form = f
-		}
-		if m.form.State == huh.StateCompleted && m.form.GetBool(forms.Confirmed) {
+		return m.wrapModal(msg, func() tea.Cmd {
 			if hostKeyErr, ok := errors.AsType[*hostKeyRequiredError](m.error); ok {
-				err := utils.AddHostKey(hostKeyErr.path, hostKeyErr.hostname, hostKeyErr.key)
+				err := utils.AddHostKey(hostKeyErr.hostname, hostKeyErr.key)
 				if err != nil {
-					return m, errCmd(err)
+					return errCmd(err)
 				}
 				m.activeModal = modalConnecting
-				return m, tea.Batch(m.dialSsh(m.getCurrentServer()), m.spinner.Tick)
+				return tea.Batch(m.dialSsh(m.getCurrentServer()), m.spinner.Tick)
 			}
-		}
-		if m.form.State == huh.StateCompleted || m.form.State == huh.StateAborted {
-			m.activeModal = modalNone
-		}
-		return m, cmd
+
+			return nil
+		})
 	case modalError:
 		if keyMsg, ok := msg.(tea.KeyPressMsg); ok && keyMsg.String() == "enter" {
 			m.activeModal = modalNone
@@ -160,10 +147,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, m.form.Init()
 		case "ctrl+i":
 			return m, m.copyId(m.getCurrentServer())
-		case "ctrl+x":
-			m.activeModal = modalSettings
-			m.form = forms.NewSettings(m.config)
-			return m, m.form.Init()
 		}
 	}
 
